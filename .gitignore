@@ -1,0 +1,19 @@
+# .NET
+bin/
+obj/
+
+# Frontend
+node_modules/
+dist/
+
+# Local environment
+.env
+.env.local
+
+# IDE
+.vs/
+.vscode/
+
+# OS
+Thumbs.db
+Desktop.ini
