@@ -1,9 +1,11 @@
+import { ActionsMenu } from '../common/ActionsMenu';
 import type { ColaboradorList } from '../../types/colaborador';
 
 type ColaboradoresTableProps = {
   colaboradores: ColaboradorList[];
   isLoading: boolean;
   onView: (id: number) => void;
+  onProfile: (id: number) => void;
   onEdit: (id: number) => void;
   onToggleActive: (colaborador: ColaboradorList) => void;
 };
@@ -12,6 +14,7 @@ export function ColaboradoresTable({
   colaboradores,
   isLoading,
   onEdit,
+  onProfile,
   onToggleActive,
   onView,
 }: ColaboradoresTableProps) {
@@ -63,17 +66,26 @@ export function ColaboradoresTable({
                     </span>
                   </td>
                   <td>
-                    <div className="row-actions">
-                      <button type="button" onClick={() => onView(colaborador.colaboradorId)}>
-                        Ver
-                      </button>
-                      <button type="button" onClick={() => onEdit(colaborador.colaboradorId)}>
-                        Editar
-                      </button>
-                      <button type="button" onClick={() => onToggleActive(colaborador)}>
-                        {colaborador.isActive ? 'Desactivar' : 'Activar'}
-                      </button>
-                    </div>
+                    <ActionsMenu
+                      items={[
+                        {
+                          label: 'Ver detalle',
+                          onClick: () => onView(colaborador.colaboradorId),
+                        },
+                        {
+                          label: 'Abrir perfil',
+                          onClick: () => onProfile(colaborador.colaboradorId),
+                        },
+                        {
+                          label: 'Editar',
+                          onClick: () => onEdit(colaborador.colaboradorId),
+                        },
+                        {
+                          label: colaborador.isActive ? 'Desactivar' : 'Activar',
+                          onClick: () => onToggleActive(colaborador),
+                        },
+                      ]}
+                    />
                   </td>
                 </tr>
               ))}

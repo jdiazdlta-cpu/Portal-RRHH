@@ -9,6 +9,9 @@ dist/
 # Local environment
 .env
 .env.local
+docs/migration-report/
+docs/migration-normalized-report/
+docs/migration-import-report/
 
 # IDE
 .vs/

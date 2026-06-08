@@ -47,6 +47,24 @@ public sealed class DashboardController(IDashboardService dashboardService) : Co
         return Ok(response);
     }
 
+    [HttpGet("altas-detalle")]
+    public async Task<IActionResult> GetAltasDetalle(
+        [FromQuery] AltasBajasDetalleFilterRequest filters,
+        CancellationToken cancellationToken)
+    {
+        var response = await dashboardService.GetAltasDetalleAsync(filters, cancellationToken);
+        return Ok(response);
+    }
+
+    [HttpGet("bajas-detalle")]
+    public async Task<IActionResult> GetBajasDetalle(
+        [FromQuery] AltasBajasDetalleFilterRequest filters,
+        CancellationToken cancellationToken)
+    {
+        var response = await dashboardService.GetBajasDetalleAsync(filters, cancellationToken);
+        return Ok(response);
+    }
+
     [HttpGet("ultimos-movimientos")]
     public async Task<IActionResult> GetUltimosMovimientos(CancellationToken cancellationToken)
     {

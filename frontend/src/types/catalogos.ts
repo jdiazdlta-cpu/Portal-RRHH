@@ -4,6 +4,12 @@ export type EmpresaCatalogo = {
   ruc: string | null;
 };
 
+export type RolCatalogo = {
+  rolId: number;
+  nombre: string;
+  descripcion: string | null;
+};
+
 export type DepartamentoCatalogo = {
   departamentoId: number;
   empresaId: number;
@@ -35,6 +41,12 @@ export type EstatusColaboradorCatalogo = {
 export type MotivoSalidaCatalogo = {
   motivoSalidaId: number;
   nombre: string;
+};
+
+export type TipoDocumentoCatalogo = {
+  tipoDocumentoId: number;
+  nombre: string;
+  tieneVencimientoSugerido: boolean;
 };
 
 export type CatalogosColaborador = {

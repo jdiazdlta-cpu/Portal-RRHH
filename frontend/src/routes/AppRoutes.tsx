@@ -3,6 +3,7 @@ import { MainLayout } from '../layouts/MainLayout';
 import { AccesoDenegadoPage } from '../pages/AccesoDenegado/AccesoDenegadoPage';
 import { AlertasPage } from '../pages/Alertas/AlertasPage';
 import { ColaboradoresPage } from '../pages/Colaboradores/ColaboradoresPage';
+import { ColaboradorPerfilPage } from '../pages/Colaboradores/ColaboradorPerfilPage';
 import { ConfiguracionPage } from '../pages/Configuracion/ConfiguracionPage';
 import { DashboardPage } from '../pages/Dashboard/DashboardPage';
 import { LoginPage } from '../pages/Login/LoginPage';
@@ -25,6 +26,7 @@ export function AppRoutes() {
           <Route element={<ProtectedRoute allowedRoles={adminOrRrhh} />}>
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/colaboradores" element={<ColaboradoresPage />} />
+            <Route path="/colaboradores/:id/perfil" element={<ColaboradorPerfilPage />} />
             <Route path="/alertas" element={<AlertasPage />} />
             <Route path="/configuracion" element={<ConfiguracionPage />} />
           </Route>

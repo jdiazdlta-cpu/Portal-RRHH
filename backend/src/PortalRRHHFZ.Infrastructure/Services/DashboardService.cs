@@ -183,6 +183,51 @@ public sealed class DashboardService(AppDbContext dbContext) : IDashboardService
         return ApiResponse<IReadOnlyCollection<AltasBajasDto>>.Ok(data);
     }
 
+    public async Task<ApiResponse<IReadOnlyCollection<AltaDetalleDto>>> GetAltasDetalleAsync(
+        AltasBajasDetalleFilterRequest filters,
+        CancellationToken cancellationToken = default)
+    {
+        var period = GetMonthPeriod(filters);
+        if (period is null)
+        {
+            return ApiResponse<IReadOnlyCollection<AltaDetalleDto>>.Fail("Anio o mes invalido.");
+        }
+
+        var colaboradores = await ApplyAltasBajasFilters(BaseColaboradorQuery().AsNoTracking(), filters)
+            .Where(colaborador => colaborador.FechaIngreso >= period.Value.Start
+                && colaborador.FechaIngreso < period.Value.End)
+            .OrderByDescending(colaborador => colaborador.FechaIngreso)
+            .ThenBy(colaborador => colaborador.PrimerApellido)
+            .ThenBy(colaborador => colaborador.PrimerNombre)
+            .ToListAsync(cancellationToken);
+        var altas = colaboradores.Select(ToAltaDetalleDto).ToList();
+
+        return ApiResponse<IReadOnlyCollection<AltaDetalleDto>>.Ok(altas);
+    }
+
+    public async Task<ApiResponse<IReadOnlyCollection<BajaDetalleDto>>> GetBajasDetalleAsync(
+        AltasBajasDetalleFilterRequest filters,
+        CancellationToken cancellationToken = default)
+    {
+        var period = GetMonthPeriod(filters);
+        if (period is null)
+        {
+            return ApiResponse<IReadOnlyCollection<BajaDetalleDto>>.Fail("Anio o mes invalido.");
+        }
+
+        var colaboradores = await ApplyAltasBajasFilters(BaseColaboradorQuery().AsNoTracking(), filters)
+            .Where(colaborador => colaborador.FechaSalida.HasValue
+                && colaborador.FechaSalida.Value >= period.Value.Start
+                && colaborador.FechaSalida.Value < period.Value.End)
+            .OrderByDescending(colaborador => colaborador.FechaSalida)
+            .ThenBy(colaborador => colaborador.PrimerApellido)
+            .ThenBy(colaborador => colaborador.PrimerNombre)
+            .ToListAsync(cancellationToken);
+        var bajas = colaboradores.Select(ToBajaDetalleDto).ToList();
+
+        return ApiResponse<IReadOnlyCollection<BajaDetalleDto>>.Ok(bajas);
+    }
+
     public async Task<ApiResponse<UltimosMovimientosDto>> GetUltimosMovimientosAsync(
         CancellationToken cancellationToken = default)
     {
@@ -216,7 +261,9 @@ public sealed class DashboardService(AppDbContext dbContext) : IDashboardService
             .Include(colaborador => colaborador.Empresa)
             .Include(colaborador => colaborador.Departamento)
             .Include(colaborador => colaborador.Cargo)
-            .Include(colaborador => colaborador.Estatus);
+            .Include(colaborador => colaborador.TipoContrato)
+            .Include(colaborador => colaborador.Estatus)
+            .Include(colaborador => colaborador.MotivoSalida);
     }
 
     private static IQueryable<Colaborador> ApplyAltasBajasFilters(
@@ -234,6 +281,20 @@ public sealed class DashboardService(AppDbContext dbContext) : IDashboardService
         }
 
         return query;
+    }
+
+    private static (DateTime Start, DateTime End)? GetMonthPeriod(AltasBajasDetalleFilterRequest filters)
+    {
+        var anio = filters.Anio ?? DateTime.UtcNow.Year;
+        var mes = filters.Mes ?? DateTime.UtcNow.Month;
+
+        if (anio < 1900 || mes is < 1 or > 12)
+        {
+            return null;
+        }
+
+        var start = new DateTime(anio, mes, 1);
+        return (start, start.AddMonths(1));
     }
 
     private static MovimientoColaboradorDto ToIngresoDto(Colaborador colaborador)
@@ -263,6 +324,38 @@ public sealed class DashboardService(AppDbContext dbContext) : IDashboardService
             FechaIngreso = null,
             FechaSalida = colaborador.FechaSalida,
             EstatusNombre = colaborador.Estatus.Nombre
+        };
+    }
+
+    private static AltaDetalleDto ToAltaDetalleDto(Colaborador colaborador)
+    {
+        return new AltaDetalleDto
+        {
+            ColaboradorId = colaborador.ColaboradorId,
+            NombreCompleto = GetNombreCompleto(colaborador),
+            Cedula = colaborador.Cedula,
+            EmpresaNombre = colaborador.Empresa.Nombre,
+            DepartamentoNombre = colaborador.Departamento.Nombre,
+            CargoNombre = colaborador.Cargo.Nombre,
+            FechaIngreso = colaborador.FechaIngreso,
+            TipoContratoNombre = colaborador.TipoContrato.Nombre,
+            EstatusNombre = colaborador.Estatus.Nombre
+        };
+    }
+
+    private static BajaDetalleDto ToBajaDetalleDto(Colaborador colaborador)
+    {
+        return new BajaDetalleDto
+        {
+            ColaboradorId = colaborador.ColaboradorId,
+            NombreCompleto = GetNombreCompleto(colaborador),
+            Cedula = colaborador.Cedula,
+            EmpresaNombre = colaborador.Empresa.Nombre,
+            DepartamentoNombre = colaborador.Departamento.Nombre,
+            CargoNombre = colaborador.Cargo.Nombre,
+            FechaSalida = colaborador.FechaSalida!.Value,
+            MotivoSalidaNombre = colaborador.MotivoSalida?.Nombre ?? "Sin motivo",
+            TipoContratoNombre = colaborador.TipoContrato.Nombre
         };
     }
 

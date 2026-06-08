@@ -10,7 +10,7 @@ type LocationState = {
 
 export function LoginPage() {
   const { isAuthenticated, isLoading, login } = useAuth();
-  const [email, setEmail] = useState('admin@portalrrhh.local');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -54,6 +54,7 @@ export function LoginPage() {
           <div>
             <span className="eyebrow">Portal interno</span>
             <h1>Portal RRHH FZ</h1>
+            <p>Gestion de colaboradores, vencimientos y expediente digital.</p>
           </div>
         </div>
 

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   activarColaborador,
   createColaborador,
@@ -100,6 +101,7 @@ function getErrorMessages(error: unknown) {
 }
 
 export function ColaboradoresPage() {
+  const navigate = useNavigate();
   const [catalogos, setCatalogos] = useState<CatalogosColaborador>(emptyCatalogos);
   const [colaboradores, setColaboradores] = useState<ColaboradorList[]>([]);
   const [colaboradoresActivos, setColaboradoresActivos] = useState<ColaboradorList[]>([]);
@@ -350,6 +352,7 @@ export function ColaboradoresPage() {
         colaboradores={colaboradores}
         isLoading={isLoading || isCatalogosLoading}
         onEdit={openEdit}
+        onProfile={(id) => navigate(`/colaboradores/${id}/perfil`)}
         onToggleActive={(colaborador) =>
           setConfirmState({
             colaborador,

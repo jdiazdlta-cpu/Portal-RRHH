@@ -88,6 +88,81 @@ export type ColaboradorDetail = {
   isActive: boolean;
 };
 
+export type ColaboradorPerfil = {
+  datosPersonales: ColaboradorPerfilDatosPersonales;
+  datosLaborales: ColaboradorPerfilDatosLaborales;
+  contrato: ColaboradorPerfilContrato;
+  vencimientos: ColaboradorPerfilVencimientos;
+  compensacion: ColaboradorPerfilCompensacion;
+};
+
+export type ColaboradorPerfilDatosPersonales = {
+  colaboradorId: number;
+  noEmpleado: string;
+  cedula: string;
+  nombreCompleto: string;
+  sexo: string | null;
+  telefono: string | null;
+  email: string | null;
+  fechaNacimiento: string | null;
+  direccion: string | null;
+};
+
+export type ColaboradorPerfilDatosLaborales = {
+  empresaId: number;
+  empresaNombre: string;
+  departamentoId: number;
+  departamentoNombre: string;
+  cargoId: number;
+  cargoNombre: string;
+  jefeInmediatoId: number | null;
+  jefeInmediatoNombre: string | null;
+  estatusId: number;
+  estatusNombre: string;
+  fechaIngreso: string;
+  fechaSalida: string | null;
+  motivoSalidaId: number | null;
+  motivoSalidaNombre: string | null;
+  vacante: boolean;
+  isActive: boolean;
+};
+
+export type ColaboradorPerfilContrato = {
+  tipoContratoId: number;
+  tipoContratoNombre: string;
+  fechaVencimientoContrato: string | null;
+  fechaVencimientoPeriodoProbatorio: string | null;
+};
+
+export type ColaboradorPerfilVencimientos = {
+  fechaVencimientoCedula: string | null;
+  tieneLicencia: boolean;
+  numeroLicencia: string | null;
+  tipoLicencia: string | null;
+  fechaVencimientoLicencia: string | null;
+  fechaVencimientoContrato: string | null;
+  fechaVencimientoPeriodoProbatorio: string | null;
+};
+
+export type ColaboradorPerfilCompensacion = {
+  salario: number | null;
+  viaticos: number | null;
+  gastosRepresentacion: number | null;
+};
+
+export type HistorialColaborador = {
+  historialColaboradorId: number;
+  colaboradorId: number;
+  usuarioId: number;
+  usuarioNombre: string;
+  accion: string;
+  campo: string | null;
+  valorAnterior: string | null;
+  valorNuevo: string | null;
+  fecha: string;
+  observacion: string | null;
+};
+
 export type ColaboradorRequest = {
   noEmpleado: string;
   cedula: string;

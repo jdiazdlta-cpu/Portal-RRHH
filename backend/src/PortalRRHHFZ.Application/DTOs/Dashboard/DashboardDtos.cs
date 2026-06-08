@@ -51,11 +51,16 @@ public sealed class ColaboradoresPorDepartamentoDto
     public int Total { get; init; }
 }
 
-public sealed class AltasBajasFilterRequest
+public class AltasBajasFilterRequest
 {
     public int? Anio { get; init; }
     public int? EmpresaId { get; init; }
     public int? DepartamentoId { get; init; }
+}
+
+public sealed class AltasBajasDetalleFilterRequest : AltasBajasFilterRequest
+{
+    public int? Mes { get; init; }
 }
 
 public sealed class AltasBajasDto
@@ -63,6 +68,32 @@ public sealed class AltasBajasDto
     public int Mes { get; init; }
     public int Altas { get; init; }
     public int Bajas { get; init; }
+}
+
+public sealed class AltaDetalleDto
+{
+    public int ColaboradorId { get; init; }
+    public string NombreCompleto { get; init; } = string.Empty;
+    public string Cedula { get; init; } = string.Empty;
+    public string EmpresaNombre { get; init; } = string.Empty;
+    public string DepartamentoNombre { get; init; } = string.Empty;
+    public string CargoNombre { get; init; } = string.Empty;
+    public DateTime FechaIngreso { get; init; }
+    public string TipoContratoNombre { get; init; } = string.Empty;
+    public string EstatusNombre { get; init; } = string.Empty;
+}
+
+public sealed class BajaDetalleDto
+{
+    public int ColaboradorId { get; init; }
+    public string NombreCompleto { get; init; } = string.Empty;
+    public string Cedula { get; init; } = string.Empty;
+    public string EmpresaNombre { get; init; } = string.Empty;
+    public string DepartamentoNombre { get; init; } = string.Empty;
+    public string CargoNombre { get; init; } = string.Empty;
+    public DateTime FechaSalida { get; init; }
+    public string MotivoSalidaNombre { get; init; } = string.Empty;
+    public string TipoContratoNombre { get; init; } = string.Empty;
 }
 
 public sealed class MovimientoColaboradorDto

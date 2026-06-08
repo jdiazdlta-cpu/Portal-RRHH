@@ -12,6 +12,7 @@ namespace PortalRRHHFZ.Infrastructure.Services;
 public sealed class AlertaService(AppDbContext dbContext) : IAlertaService
 {
     private const int DiasAnticipacion = 7;
+    private static readonly string[] EstatusOperativos = ["A", "V", "S"];
 
     public async Task<ApiResponse<IReadOnlyCollection<AlertaListDto>>> GetAllAsync(
         AlertaFilterRequest filters,
@@ -143,6 +144,10 @@ public sealed class AlertaService(AppDbContext dbContext) : IAlertaService
         var limitDate = today.AddDays(DiasAnticipacion);
         var now = DateTime.UtcNow;
 
+        await DesactivarAlertasNoOperativasAsync(
+            currentUser.UserName,
+            cancellationToken);
+
         var updatedToExpired = await ActualizarPendientesVencidasAsync(
             today,
             currentUser.UserName,
@@ -254,6 +259,7 @@ public sealed class AlertaService(AppDbContext dbContext) : IAlertaService
         var pendientesVencidas = await dbContext.Alertas
             .Where(alerta =>
                 alerta.IsActive
+                && EstatusOperativos.Contains(alerta.Colaborador.Estatus.Codigo)
                 && alerta.EstadoAlerta == EstadoAlerta.Pendiente
                 && alerta.FechaVencimiento < today)
             .ToListAsync(cancellationToken);
@@ -273,6 +279,29 @@ public sealed class AlertaService(AppDbContext dbContext) : IAlertaService
         return pendientesVencidas.Count;
     }
 
+    private async Task DesactivarAlertasNoOperativasAsync(
+        string? currentUser,
+        CancellationToken cancellationToken)
+    {
+        var alertasNoOperativas = await dbContext.Alertas
+            .Where(alerta =>
+                alerta.IsActive
+                && !EstatusOperativos.Contains(alerta.Colaborador.Estatus.Codigo))
+            .ToListAsync(cancellationToken);
+
+        foreach (var alerta in alertasNoOperativas)
+        {
+            alerta.IsActive = false;
+            alerta.UpdatedAt = DateTime.UtcNow;
+            alerta.UpdatedBy = currentUser;
+        }
+
+        if (alertasNoOperativas.Count > 0)
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+    }
+
     private async Task AgregarAlertasColaboradoresAsync(
         List<Alerta> alertasNuevas,
         HashSet<AlertKey> existingKeys,
@@ -284,7 +313,9 @@ public sealed class AlertaService(AppDbContext dbContext) : IAlertaService
     {
         var colaboradores = await dbContext.Colaboradores
             .AsNoTracking()
-            .Where(colaborador => colaborador.IsActive)
+            .Where(colaborador =>
+                colaborador.IsActive
+                && EstatusOperativos.Contains(colaborador.Estatus.Codigo))
             .ToListAsync(cancellationToken);
 
         foreach (var colaborador in colaboradores)
@@ -360,6 +391,7 @@ public sealed class AlertaService(AppDbContext dbContext) : IAlertaService
             .Where(documento =>
                 documento.IsActive
                 && documento.Colaborador.IsActive
+                && EstatusOperativos.Contains(documento.Colaborador.Estatus.Codigo)
                 && documento.TieneVencimiento
                 && documento.FechaVencimiento.HasValue)
             .ToListAsync(cancellationToken);

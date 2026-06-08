@@ -1,24 +1,25 @@
+import { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/useAuth';
 
 type NavigationItem = {
   to: string;
   label: string;
-  marker: string;
   roles: string[];
 };
 
 const navigationItems: NavigationItem[] = [
-  { to: '/dashboard', label: 'Dashboard', marker: 'D', roles: ['Admin', 'RRHH'] },
-  { to: '/colaboradores', label: 'Colaboradores', marker: 'C', roles: ['Admin', 'RRHH'] },
-  { to: '/alertas', label: 'Alertas', marker: 'A', roles: ['Admin', 'RRHH'] },
-  { to: '/usuarios', label: 'Usuarios', marker: 'U', roles: ['Admin'] },
-  { to: '/configuracion', label: 'Configuracion', marker: 'K', roles: ['Admin', 'RRHH'] },
+  { to: '/dashboard', label: 'Dashboard', roles: ['Admin', 'RRHH'] },
+  { to: '/colaboradores', label: 'Colaboradores', roles: ['Admin', 'RRHH'] },
+  { to: '/alertas', label: 'Alertas', roles: ['Admin', 'RRHH'] },
+  { to: '/usuarios', label: 'Usuarios', roles: ['Admin'] },
+  { to: '/configuracion', label: 'Configuracion', roles: ['Admin', 'RRHH'] },
 ];
 
 export function MainLayout() {
   const { logout, role, user } = useAuth();
   const navigate = useNavigate();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const visibleItems = navigationItems.filter((item) => role && item.roles.includes(role));
 
   const handleLogout = () => {
@@ -27,48 +28,58 @@ export function MainLayout() {
   };
 
   return (
-    <div className="shell">
-      <aside className="sidebar">
-        <div className="brand">
-          <div className="brand-mark">FZ</div>
-          <div>
-            <strong>Portal RRHH FZ</strong>
-            <span>Recursos Humanos</span>
-          </div>
-        </div>
+    <div className="shell top-shell">
+      <header className="top-navigation">
+        <div className="top-navigation-inner">
+          <NavLink className="top-brand" to="/dashboard" onClick={() => setIsMenuOpen(false)}>
+            <span className="brand-mark">FZ</span>
+            <span>
+              <strong>Portal RRHH FZ</strong>
+              <small>Recursos Humanos</small>
+            </span>
+          </NavLink>
 
-        <nav className="nav-list" aria-label="Navegacion principal">
-          {visibleItems.map((item) => (
-            <NavLink
-              className={({ isActive }) => (isActive ? 'nav-item active' : 'nav-item')}
-              key={item.to}
-              to={item.to}
-            >
-              <span className="nav-marker">{item.marker}</span>
-              <span>{item.label}</span>
-            </NavLink>
-          ))}
-        </nav>
-      </aside>
+          <button
+            aria-expanded={isMenuOpen}
+            className="menu-toggle"
+            type="button"
+            onClick={() => setIsMenuOpen((current) => !current)}
+          >
+            Menu
+          </button>
 
-      <div className="content-shell">
-        <header className="topbar">
-          <div>
-            <span className="eyebrow">Sesion activa</span>
-            <h1>{user?.nombreUsuario ?? 'Usuario'}</h1>
-          </div>
-          <div className="user-actions">
-            <span className="role-pill">{role ?? 'Sin rol'}</span>
-            <button className="secondary-button" type="button" onClick={handleLogout}>
-              Cerrar sesion
+          <nav
+            aria-label="Navegacion principal"
+            className={isMenuOpen ? 'top-nav-list open' : 'top-nav-list'}
+          >
+            {visibleItems.map((item) => (
+              <NavLink
+                className={({ isActive }) => (isActive ? 'top-nav-item active' : 'top-nav-item')}
+                key={item.to}
+                to={item.to}
+                onClick={() => setIsMenuOpen(false)}
+              >
+                {item.label}
+              </NavLink>
+            ))}
+          </nav>
+
+          <div className="top-user">
+            <div className="user-avatar">{user?.nombreUsuario?.slice(0, 2).toUpperCase() ?? 'US'}</div>
+            <div className="top-user-meta">
+              <strong>{user?.nombreUsuario ?? 'Usuario'}</strong>
+              <span>{role ?? 'Sin rol'}</span>
+            </div>
+            <button className="logout-button" type="button" onClick={handleLogout}>
+              Salir
             </button>
           </div>
-        </header>
+        </div>
+      </header>
 
-        <main className="page-content">
-          <Outlet />
-        </main>
-      </div>
+      <main className="page-content">
+        <Outlet />
+      </main>
     </div>
   );
 }

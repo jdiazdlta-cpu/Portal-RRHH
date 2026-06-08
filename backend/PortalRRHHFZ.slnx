@@ -5,4 +5,5 @@
     <Project Path="src/PortalRRHHFZ.Domain/PortalRRHHFZ.Domain.csproj" />
     <Project Path="src/PortalRRHHFZ.Infrastructure/PortalRRHHFZ.Infrastructure.csproj" />
   </Folder>
+  <Project Path="../tools/PortalRRHHFZ.MigrationAnalyzer/PortalRRHHFZ.MigrationAnalyzer.csproj" />
 </Solution>

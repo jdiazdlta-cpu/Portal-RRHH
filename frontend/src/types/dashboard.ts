@@ -51,6 +51,37 @@ export type AltasBajas = {
   bajas: number;
 };
 
+export type AltasBajasFilters = {
+  anio?: number;
+  mes?: number;
+  empresaId?: number;
+  departamentoId?: number;
+};
+
+export type AltaDetalle = {
+  colaboradorId: number;
+  nombreCompleto: string;
+  cedula: string;
+  empresaNombre: string;
+  departamentoNombre: string;
+  cargoNombre: string;
+  fechaIngreso: string;
+  tipoContratoNombre: string;
+  estatusNombre: string;
+};
+
+export type BajaDetalle = {
+  colaboradorId: number;
+  nombreCompleto: string;
+  cedula: string;
+  empresaNombre: string;
+  departamentoNombre: string;
+  cargoNombre: string;
+  fechaSalida: string;
+  motivoSalidaNombre: string;
+  tipoContratoNombre: string;
+};
+
 export type MovimientoColaborador = {
   colaboradorId: number;
   nombreCompleto: string;

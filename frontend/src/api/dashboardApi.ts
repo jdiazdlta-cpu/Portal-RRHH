@@ -1,6 +1,9 @@
 import { apiRequest } from './httpClient';
 import type {
   AltasBajas,
+  AltasBajasFilters,
+  AltaDetalle,
+  BajaDetalle,
   ColaboradoresPorDepartamento,
   ColaboradoresPorEstatus,
   DashboardResumen,
@@ -26,8 +29,40 @@ export function getColaboradoresPorDepartamento() {
   );
 }
 
-export function getAltasBajas(anio = new Date().getFullYear()) {
-  return apiRequest<AltasBajas[]>(`/dashboard/altas-bajas?anio=${anio}`);
+function buildAltasBajasQuery(filters: AltasBajasFilters = {}) {
+  const params = new URLSearchParams();
+
+  if (filters.anio) params.set('anio', String(filters.anio));
+  if (filters.mes) params.set('mes', String(filters.mes));
+  if (filters.empresaId) params.set('empresaId', String(filters.empresaId));
+  if (filters.departamentoId) params.set('departamentoId', String(filters.departamentoId));
+
+  const query = params.toString();
+  return query ? `?${query}` : '';
+}
+
+export function getAltasBajas(filters: AltasBajasFilters = {}) {
+  const normalizedFilters = {
+    anio: filters.anio ?? new Date().getFullYear(),
+    empresaId: filters.empresaId,
+    departamentoId: filters.departamentoId,
+  };
+
+  return apiRequest<AltasBajas[]>(
+    `/dashboard/altas-bajas${buildAltasBajasQuery(normalizedFilters)}`,
+  );
+}
+
+export function getAltasDetalle(filters: AltasBajasFilters = {}) {
+  return apiRequest<AltaDetalle[]>(
+    `/dashboard/altas-detalle${buildAltasBajasQuery(filters)}`,
+  );
+}
+
+export function getBajasDetalle(filters: AltasBajasFilters = {}) {
+  return apiRequest<BajaDetalle[]>(
+    `/dashboard/bajas-detalle${buildAltasBajasQuery(filters)}`,
+  );
 }
 
 export function getUltimosMovimientos() {

@@ -21,6 +21,14 @@ public interface IDashboardService
         AltasBajasFilterRequest filters,
         CancellationToken cancellationToken = default);
 
+    Task<ApiResponse<IReadOnlyCollection<AltaDetalleDto>>> GetAltasDetalleAsync(
+        AltasBajasDetalleFilterRequest filters,
+        CancellationToken cancellationToken = default);
+
+    Task<ApiResponse<IReadOnlyCollection<BajaDetalleDto>>> GetBajasDetalleAsync(
+        AltasBajasDetalleFilterRequest filters,
+        CancellationToken cancellationToken = default);
+
     Task<ApiResponse<UltimosMovimientosDto>> GetUltimosMovimientosAsync(
         CancellationToken cancellationToken = default);
 }

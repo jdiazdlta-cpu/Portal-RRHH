@@ -3,7 +3,9 @@ import type {
   ColaboradorDetail,
   ColaboradorFilters,
   ColaboradorList,
+  ColaboradorPerfil,
   ColaboradorRequest,
+  HistorialColaborador,
 } from '../types/colaborador';
 
 function buildQuery(filters: ColaboradorFilters = {}) {
@@ -27,6 +29,14 @@ export function getColaboradores(filters?: ColaboradorFilters) {
 
 export function getColaboradorById(id: number) {
   return apiRequest<ColaboradorDetail>(`/colaboradores/${id}`);
+}
+
+export function getColaboradorPerfil(id: number) {
+  return apiRequest<ColaboradorPerfil>(`/colaboradores/${id}/perfil`);
+}
+
+export function getHistorialColaborador(id: number) {
+  return apiRequest<HistorialColaborador[]>(`/colaboradores/${id}/historial`);
 }
 
 export function createColaborador(request: ColaboradorRequest) {

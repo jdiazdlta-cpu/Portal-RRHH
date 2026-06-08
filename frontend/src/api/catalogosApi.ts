@@ -5,8 +5,14 @@ import type {
   EmpresaCatalogo,
   EstatusColaboradorCatalogo,
   MotivoSalidaCatalogo,
+  RolCatalogo,
+  TipoDocumentoCatalogo,
   TipoContratoCatalogo,
 } from '../types/catalogos';
+
+export function getRolesCatalogo() {
+  return apiRequest<RolCatalogo[]>('/catalogos/roles');
+}
 
 export function getEmpresasCatalogo() {
   return apiRequest<EmpresaCatalogo[]>('/catalogos/empresas');
@@ -32,4 +38,8 @@ export function getEstatusColaboradorCatalogo() {
 
 export function getMotivosSalidaCatalogo() {
   return apiRequest<MotivoSalidaCatalogo[]>('/catalogos/motivos-salida');
+}
+
+export function getTiposDocumentoCatalogo() {
+  return apiRequest<TipoDocumentoCatalogo[]>('/catalogos/tipos-documento');
 }
