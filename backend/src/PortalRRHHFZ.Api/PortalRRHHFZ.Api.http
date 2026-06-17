@@ -1,0 +1,6 @@
+@PortalRRHHFZ.Api_HostAddress = http://localhost:5004
+
+GET {{PortalRRHHFZ.Api_HostAddress}}/api/health
+Accept: application/json
+
+###

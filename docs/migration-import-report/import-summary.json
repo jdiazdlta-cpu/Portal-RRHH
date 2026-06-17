@@ -1,0 +1,68 @@
+{
+  "mode": "db-summary",
+  "Confirm": false,
+  "Source": "C:\\Users\\j.diaz\\OneDrive - Farmazona, S.A\\BackUp\\CODEX\\Portal RRHH\\Dataverse_Import_Normalizado_v2.xlsx",
+  "ConnectionString": "Server=localhost;Database=PortalRRHHFZ;Trusted_Connection=True;TrustServerCertificate=True;Connection Timeout=5;",
+  "timestamp": "2026-06-16T14:49:44.2710444Z",
+  "validation": null,
+  "result": {
+    "totalColaboradores": 775,
+    "catalogos": {
+      "empresas": 5,
+      "departamentos": 43,
+      "cargos": 233
+    },
+    "porEstatus": [
+      {
+        "estatus": "Activo",
+        "count": 435
+      },
+      {
+        "estatus": "Cesante",
+        "count": 302
+      },
+      {
+        "estatus": "Servicio",
+        "count": 3
+      },
+      {
+        "estatus": "Vacaciones",
+        "count": 35
+      }
+    ],
+    "porEmpresa": [
+      {
+        "empresa": "CARGA TRANSISTMICA",
+        "count": 92
+      },
+      {
+        "empresa": "CARIBBEAN SECURITY",
+        "count": 39
+      },
+      {
+        "empresa": "DAVIS HEALTH",
+        "count": 230
+      },
+      {
+        "empresa": "FARMAZONA",
+        "count": 385
+      },
+      {
+        "empresa": "SERVICIOS DAVIS",
+        "count": 29
+      }
+    ],
+    "porContrato": [
+      {
+        "tipoContrato": "Eventual",
+        "count": 305
+      },
+      {
+        "tipoContrato": "Permanente",
+        "count": 470
+      }
+    ]
+  },
+  "warnings": 0,
+  "errors": 0
+}

@@ -1,0 +1,30 @@
+# .NET
+bin/
+obj/
+.vs/
+*.user
+*.suo
+
+# Node
+node_modules/
+dist/
+.env
+
+# Logs
+*.log
+
+# Local settings
+appsettings.Development.json
+
+# Uploads locales
+uploads/
+
+# SQL backups / DB files
+*.bak
+*.trn
+*.mdf
+*.ldf
+
+# OS
+.DS_Store
+Thumbs.db
