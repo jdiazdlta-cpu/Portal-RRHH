@@ -9,6 +9,12 @@ obj/
 node_modules/
 dist/
 .env
+.env.local
+
+# Migration reports
+docs/migration-report/
+docs/migration-normalized-report/
+docs/migration-import-report/
 
 # Logs
 *.log
@@ -28,3 +34,7 @@ uploads/
 # OS
 .DS_Store
 Thumbs.db
+Desktop.ini
+
+# IDE
+.vscode/
