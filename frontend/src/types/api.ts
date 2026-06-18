@@ -111,6 +111,15 @@ export type ColaboradorList = {
   isActive: boolean;
 };
 
+export type PosibleJefe = {
+  colaboradorId: number;
+  noEmpleado: string;
+  nombreCompleto: string;
+  empresa: string;
+  departamento: string;
+  cargo: string;
+};
+
 export type Documento = {
   documentoColaboradorId: number;
   tipoDocumentoId: number;

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Net.Mail;
 using PortalRRHHFZ.Application.Common;
 using PortalRRHHFZ.Application.DTOs;
 using PortalRRHHFZ.Domain.Constants;
@@ -40,9 +41,10 @@ public sealed class UsuariosController(AppDbContext db, IPasswordHasher<Usuario>
             return BadRequest(ApiResponse<object>.Fail(validation));
         }
 
-        if (string.IsNullOrWhiteSpace(request.Password) || request.Password.Length < 8)
+        var passwordValidation = ValidatePassword(request.Password, request.ConfirmPassword);
+        if (passwordValidation is not null)
         {
-            return BadRequest(ApiResponse<object>.Fail("La contrasena debe tener al menos 8 caracteres."));
+            return BadRequest(ApiResponse<object>.Fail(passwordValidation));
         }
 
         var usuario = new Usuario
@@ -97,9 +99,10 @@ public sealed class UsuariosController(AppDbContext db, IPasswordHasher<Usuario>
     [HttpPut("{id:int}/reset-password")]
     public async Task<IActionResult> ResetPassword(int id, [FromBody] ResetPasswordRequest request, CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(request.Password) || request.Password.Length < 8)
+        var passwordValidation = ValidatePassword(request.Password, null);
+        if (passwordValidation is not null)
         {
-            return BadRequest(ApiResponse<object>.Fail("La contrasena debe tener al menos 8 caracteres."));
+            return BadRequest(ApiResponse<object>.Fail(passwordValidation));
         }
 
         var usuario = await db.Usuarios.FirstOrDefaultAsync(x => x.UsuarioId == id, cancellationToken);
@@ -145,6 +148,11 @@ public sealed class UsuariosController(AppDbContext db, IPasswordHasher<Usuario>
             return "Email es obligatorio.";
         }
 
+        if (!IsValidEmail(email))
+        {
+            return "Email no tiene un formato valido.";
+        }
+
         if (!await db.Roles.AnyAsync(x => x.RolId == rolId && x.IsActive, cancellationToken))
         {
             return "Rol no valido.";
@@ -163,5 +171,38 @@ public sealed class UsuariosController(AppDbContext db, IPasswordHasher<Usuario>
         }
 
         return null;
+    }
+
+    private static string? ValidatePassword(string password, string? confirmPassword)
+    {
+        if (string.IsNullOrWhiteSpace(password) || password.Length < 8)
+        {
+            return "La contrasena debe tener al menos 8 caracteres.";
+        }
+
+        if (confirmPassword is not null && password != confirmPassword)
+        {
+            return "La confirmacion de contrasena no coincide.";
+        }
+
+        if (!password.Any(char.IsUpper) || !password.Any(char.IsLower) || !password.Any(char.IsDigit) || !password.Any(ch => !char.IsLetterOrDigit(ch)))
+        {
+            return "La contrasena debe incluir mayuscula, minuscula, numero y simbolo.";
+        }
+
+        return null;
+    }
+
+    private static bool IsValidEmail(string email)
+    {
+        try
+        {
+            var address = new MailAddress(email.Trim());
+            return address.Address == email.Trim();
+        }
+        catch (FormatException)
+        {
+            return false;
+        }
     }
 }

@@ -982,6 +982,10 @@ td {
   box-shadow: 0 24px 80px rgba(17, 24, 39, 0.28);
 }
 
+.user-modal {
+  width: min(760px, 100%);
+}
+
 .modal-header {
   position: sticky;
   top: 0;
@@ -1092,6 +1096,11 @@ td {
   background: #fbfaff;
   font-size: 13px;
   font-weight: 800;
+}
+
+.form-note.warning {
+  color: var(--warning);
+  background: #fff7ed;
 }
 
 .compact-check {

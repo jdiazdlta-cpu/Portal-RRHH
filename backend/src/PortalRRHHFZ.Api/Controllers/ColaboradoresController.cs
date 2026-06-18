@@ -79,6 +79,59 @@ public sealed class ColaboradoresController(AppDbContext db) : ControllerBase
         return Ok(ApiResponse<PagedResult<ColaboradorListDto>>.Ok(data));
     }
 
+    [HttpGet("posibles-jefes")]
+    public async Task<IActionResult> PosiblesJefes(
+        [FromQuery] int? empresaId,
+        [FromQuery] int? departamentoId,
+        [FromQuery] int? cargoId,
+        [FromQuery] int? excludeColaboradorId,
+        CancellationToken cancellationToken)
+    {
+        var query = db.Colaboradores
+            .Include(x => x.Empresa)
+            .Include(x => x.Departamento)
+            .Include(x => x.Cargo)
+            .AsNoTracking()
+            .Where(x => x.IsActive);
+
+        if (empresaId.HasValue)
+        {
+            query = query.Where(x => x.EmpresaId == empresaId.Value);
+        }
+
+        if (departamentoId.HasValue)
+        {
+            query = query.Where(x => x.DepartamentoId == departamentoId.Value);
+        }
+
+        if (cargoId.HasValue)
+        {
+            query = query.Where(x => x.CargoId == cargoId.Value);
+        }
+
+        if (excludeColaboradorId.HasValue)
+        {
+            query = query.Where(x => x.ColaboradorId != excludeColaboradorId.Value);
+        }
+
+        var colaboradores = await query
+            .OrderBy(x => x.PrimerApellido)
+            .ThenBy(x => x.PrimerNombre)
+            .ToListAsync(cancellationToken);
+
+        var data = colaboradores
+            .Select(x => new PosibleJefeDto(
+                x.ColaboradorId,
+                x.NoEmpleado,
+                x.NombreCompleto(),
+                x.Empresa.Nombre,
+                x.Departamento.Nombre,
+                x.Cargo.Nombre))
+            .ToList();
+
+        return Ok(ApiResponse<List<PosibleJefeDto>>.Ok(data));
+    }
+
     [HttpGet("{id:int}")]
     public Task<IActionResult> GetById(int id, CancellationToken cancellationToken) => GetDetalle(id, cancellationToken);
 
@@ -105,7 +158,7 @@ public sealed class ColaboradoresController(AppDbContext db) : ControllerBase
             UsuarioId = User.CurrentUserId(),
             Accion = "CREACION",
             ValorNuevo = colaborador.NoEmpleado,
-            Observacion = "Creacion manual de colaborador",
+            Observacion = "Creacion de colaborador",
             CreatedBy = User.Identity?.Name
         });
         await db.SaveChangesAsync(cancellationToken);
@@ -129,6 +182,9 @@ public sealed class ColaboradoresController(AppDbContext db) : ControllerBase
         }
 
         var before = colaborador.NoEmpleado;
+        var jefeAnteriorId = colaborador.JefeInmediatoId;
+        var jefeAnterior = await GetJefeDisplayAsync(jefeAnteriorId, cancellationToken);
+        var jefeNuevo = await GetJefeDisplayAsync(request.JefeInmediatoId, cancellationToken);
         Apply(colaborador, request);
         colaborador.UpdatedBy = User.Identity?.Name;
         db.HistorialColaborador.Add(new HistorialColaborador
@@ -142,6 +198,22 @@ public sealed class ColaboradoresController(AppDbContext db) : ControllerBase
             Observacion = "Actualizacion manual de colaborador",
             CreatedBy = User.Identity?.Name
         });
+
+        if (jefeAnteriorId != request.JefeInmediatoId)
+        {
+            db.HistorialColaborador.Add(new HistorialColaborador
+            {
+                ColaboradorId = colaborador.ColaboradorId,
+                UsuarioId = User.CurrentUserId(),
+                Accion = "ACTUALIZACION",
+                Campo = "JefeInmediatoId",
+                ValorAnterior = FormatJefeValue(jefeAnteriorId, jefeAnterior),
+                ValorNuevo = FormatJefeValue(request.JefeInmediatoId, jefeNuevo),
+                Observacion = "Cambio de jefe inmediato",
+                CreatedBy = User.Identity?.Name
+            });
+        }
+
         await db.SaveChangesAsync(cancellationToken);
 
         return Ok(ApiResponse<object>.Ok(new { colaborador.ColaboradorId }, "Colaborador actualizado."));
@@ -345,9 +417,15 @@ public sealed class ColaboradoresController(AppDbContext db) : ControllerBase
                 return "El jefe inmediato no puede ser el mismo colaborador.";
             }
 
-            if (!await db.Colaboradores.AnyAsync(x => x.ColaboradorId == request.JefeInmediatoId.Value && x.IsActive, cancellationToken))
+            var jefe = await db.Colaboradores.AsNoTracking().FirstOrDefaultAsync(x => x.ColaboradorId == request.JefeInmediatoId.Value, cancellationToken);
+            if (jefe is null)
             {
-                return "Jefe inmediato no valido.";
+                return "Jefe inmediato no encontrado.";
+            }
+
+            if (!jefe.IsActive)
+            {
+                return "Jefe inmediato inactivo.";
             }
         }
 
@@ -394,5 +472,24 @@ public sealed class ColaboradoresController(AppDbContext db) : ControllerBase
         colaborador.MotivoSalidaId = request.MotivoSalidaId;
         colaborador.Vacante = request.Vacante;
         colaborador.UltimaVacacion = request.UltimaVacacion;
+    }
+
+    private async Task<string?> GetJefeDisplayAsync(int? jefeId, CancellationToken cancellationToken)
+    {
+        if (!jefeId.HasValue)
+        {
+            return null;
+        }
+
+        var jefe = await db.Colaboradores
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.ColaboradorId == jefeId.Value, cancellationToken);
+
+        return jefe?.NombreCompleto();
+    }
+
+    private static string? FormatJefeValue(int? jefeId, string? nombre)
+    {
+        return jefeId.HasValue ? $"{nombre ?? "N/D"} ({jefeId.Value})" : null;
     }
 }

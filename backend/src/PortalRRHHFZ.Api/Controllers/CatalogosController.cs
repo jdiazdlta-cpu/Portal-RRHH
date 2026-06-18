@@ -14,6 +14,7 @@ namespace PortalRRHHFZ.Api.Controllers;
 public sealed class CatalogosController(AppDbContext db) : ControllerBase
 {
     [HttpGet("roles")]
+    [Authorize(Policy = AppPolicies.RequireAdmin)]
     public async Task<IActionResult> Roles(CancellationToken cancellationToken)
     {
         var data = await db.Roles.Where(x => x.IsActive).OrderBy(x => x.RolId).Select(x => new RolDto(x.RolId, x.Nombre, x.Descripcion)).ToListAsync(cancellationToken);

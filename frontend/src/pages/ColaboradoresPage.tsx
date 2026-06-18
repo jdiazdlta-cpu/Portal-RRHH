@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Dispatch, FormEvent, SetStateAction } from 'react';
-import { Eye, MoreVertical, Pencil, Power, PowerOff, Save, Search, X } from 'lucide-react';
+import { Eye, MoreVertical, Pencil, Plus, Power, PowerOff, Save, Search, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { apiGet, apiPatch, apiPut } from '../api/client';
+import { apiGet, apiPatch, apiPost, apiPut } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
-import type { CatalogoItem, ColaboradorDetalle, ColaboradorList, ColaboradorUpsert, PagedResult } from '../types/api';
+import type { CatalogoItem, ColaboradorDetalle, ColaboradorList, ColaboradorUpsert, PagedResult, PosibleJefe } from '../types/api';
 import { formatDate, statusClass } from '../utils/format';
 
 type ColaboradorFormState = {
@@ -63,13 +63,16 @@ export function ColaboradoresPage() {
   const [motivosSalida, setMotivosSalida] = useState<CatalogoItem[]>([]);
   const [formDepartamentos, setFormDepartamentos] = useState<CatalogoItem[]>([]);
   const [formCargos, setFormCargos] = useState<CatalogoItem[]>([]);
+  const [jefes, setJefes] = useState<PosibleJefe[]>([]);
   const [editing, setEditing] = useState<ColaboradorDetalle | null>(null);
+  const [creating, setCreating] = useState(false);
   const [form, setForm] = useState<ColaboradorFormState | null>(null);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
   const [loadingEdit, setLoadingEdit] = useState(false);
+  const [loadingJefes, setLoadingJefes] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -142,18 +145,33 @@ export function ColaboradoresPage() {
     setPage(1);
   }
 
+  function openCreate() {
+    setEditing(null);
+    setCreating(true);
+    setForm(emptyFormState());
+    setFormDepartamentos([]);
+    setFormCargos([]);
+    setJefes([]);
+    setError('');
+    setFormError('');
+    setNotice('');
+  }
+
   async function openEdit(id: number) {
     setLoadingEdit(true);
+    setCreating(false);
     setError('');
     setFormError('');
     try {
       const detail = await apiGet<ColaboradorDetalle>(`/colaboradores/${id}`);
-      const [departments, positions] = await Promise.all([
+      const [departments, positions, leaders] = await Promise.all([
         apiGet<CatalogoItem[]>(`/catalogos/departamentos?empresaId=${detail.empresaId}`),
-        apiGet<CatalogoItem[]>(`/catalogos/cargos?departamentoId=${detail.departamentoId}`)
+        apiGet<CatalogoItem[]>(`/catalogos/cargos?departamentoId=${detail.departamentoId}`),
+        fetchJefes(String(detail.empresaId), String(detail.departamentoId), id)
       ]);
       setFormDepartamentos(departments);
       setFormCargos(positions);
+      setJefes(leaders);
       setEditing(detail);
       setForm(toFormState(detail));
     } catch (err) {
@@ -163,14 +181,23 @@ export function ColaboradoresPage() {
     }
   }
 
+  function closeForm() {
+    setEditing(null);
+    setCreating(false);
+    setForm(null);
+    setFormError('');
+  }
+
   async function changeFormEmpresa(value: string) {
     setForm((current) => current ? { ...current, empresaId: value, departamentoId: '', cargoId: '' } : current);
     setFormCargos([]);
     if (!value) {
       setFormDepartamentos([]);
+      setJefes([]);
       return;
     }
 
+    void loadJefes(value, '', editing?.colaboradorId, setLoadingJefes, setJefes, setFormError);
     try {
       setFormDepartamentos(await apiGet<CatalogoItem[]>(`/catalogos/departamentos?empresaId=${value}`));
     } catch (err) {
@@ -180,6 +207,7 @@ export function ColaboradoresPage() {
 
   async function changeFormDepartamento(value: string) {
     setForm((current) => current ? { ...current, departamentoId: value, cargoId: '' } : current);
+    void loadJefes(form?.empresaId ?? '', value, editing?.colaboradorId, setLoadingJefes, setJefes, setFormError);
     if (!value) {
       setFormCargos([]);
       return;
@@ -194,20 +222,28 @@ export function ColaboradoresPage() {
 
   async function saveEdit(event: FormEvent) {
     event.preventDefault();
-    if (!editing || !form) return;
+    if (!form || (!editing && !creating)) return;
     setSaving(true);
     setFormError('');
     setNotice('');
 
     try {
+      if (editing && form.jefeInmediatoId && Number(form.jefeInmediatoId) === editing.colaboradorId) {
+        throw new Error('El jefe inmediato no puede ser el mismo colaborador.');
+      }
+
       const payload = toPayload(form);
-      await apiPut(`/colaboradores/${editing.colaboradorId}`, payload);
-      setEditing(null);
-      setForm(null);
-      setNotice('Colaborador actualizado correctamente.');
+      if (editing) {
+        await apiPut(`/colaboradores/${editing.colaboradorId}`, payload);
+      } else {
+        await apiPost('/colaboradores', payload);
+      }
+
+      closeForm();
+      setNotice(editing ? 'Colaborador actualizado correctamente.' : 'Colaborador creado correctamente.');
       loadColaboradores();
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : 'No se pudo actualizar el colaborador.');
+      setFormError(err instanceof Error ? err.message : 'No se pudo guardar el colaborador.');
     } finally {
       setSaving(false);
     }
@@ -226,6 +262,7 @@ export function ColaboradoresPage() {
   }
 
   const totalPages = Math.max(1, Math.ceil(total / 25));
+  const jefeSeleccionadoEnOpciones = !form?.jefeInmediatoId || jefes.some((jefe) => String(jefe.colaboradorId) === form.jefeInmediatoId);
 
   return (
     <section className="page">
@@ -234,6 +271,12 @@ export function ColaboradoresPage() {
           <h1>Colaboradores</h1>
           <p>{total} registros</p>
         </div>
+        {canOperate && (
+          <button className="primary-button" onClick={openCreate} type="button">
+            <Plus size={18} />
+            Nuevo colaborador
+          </button>
+        )}
       </div>
       {error && <div className="error-box">{error}</div>}
       {notice && <div className="success-box">{notice}</div>}
@@ -317,15 +360,15 @@ export function ColaboradoresPage() {
         <button className="secondary-button" disabled={page >= totalPages} onClick={() => setPage((value) => value + 1)}>Siguiente</button>
       </div>
 
-      {editing && form && (
+      {(editing || creating) && form && (
         <div className="modal-backdrop" role="presentation">
-          <section className="modal-panel colaborador-modal" role="dialog" aria-modal="true" aria-labelledby="editar-colaborador-title">
+          <section className="modal-panel colaborador-modal" role="dialog" aria-modal="true" aria-labelledby="colaborador-form-title">
             <div className="modal-header">
               <div>
-                <h2 id="editar-colaborador-title">Editar colaborador</h2>
-                <p>{editing.nombreCompleto}</p>
+                <h2 id="colaborador-form-title">{editing ? 'Editar colaborador' : 'Nuevo colaborador'}</h2>
+                <p>{editing ? editing.nombreCompleto : 'Alta de colaborador'}</p>
               </div>
-              <button className="icon-button light" onClick={() => { setEditing(null); setForm(null); }} type="button" title="Cerrar" aria-label="Cerrar">
+              <button className="icon-button light" onClick={closeForm} type="button" title="Cerrar" aria-label="Cerrar">
                 <X size={18} />
               </button>
             </div>
@@ -359,12 +402,22 @@ export function ColaboradoresPage() {
                   <Select label="Empresa" value={form.empresaId} onChange={changeFormEmpresa} options={empresas} required />
                   <Select label="Departamento" value={form.departamentoId} onChange={changeFormDepartamento} options={formDepartamentos} required />
                   <Select label="Cargo" value={form.cargoId} onChange={(value) => updateForm(setForm, 'cargoId', value)} options={formCargos} required />
+                  <JefeSelect
+                    value={form.jefeInmediatoId}
+                    onChange={(value) => updateForm(setForm, 'jefeInmediatoId', value)}
+                    options={jefes}
+                    currentId={editing?.jefeInmediatoId}
+                    currentName={editing?.jefeInmediato}
+                    loading={loadingJefes}
+                  />
                   <TextField label="Fecha ingreso" type="date" value={form.fechaIngreso} onChange={(value) => updateForm(setForm, 'fechaIngreso', value)} required />
                   <Select label="Tipo contrato" value={form.tipoContratoId} onChange={(value) => updateForm(setForm, 'tipoContratoId', value)} options={tiposContrato} required />
                   <Select label="Estatus" value={form.estatusId} onChange={(value) => updateForm(setForm, 'estatusId', value)} options={estatus} required />
                   <Select label="Motivo salida" value={form.motivoSalidaId} onChange={(value) => updateForm(setForm, 'motivoSalidaId', value)} options={motivosSalida} />
                   <TextField label="Fecha salida" type="date" value={form.fechaSalida} onChange={(value) => updateForm(setForm, 'fechaSalida', value)} />
-                  {editing.jefeInmediato && <p className="form-note span-2">Jefe inmediato actual: {editing.jefeInmediato}</p>}
+                  {!jefeSeleccionadoEnOpciones && (
+                    <p className="form-note warning span-2">El jefe seleccionado no aparece en la empresa/departamento actual.</p>
+                  )}
                 </div>
               </div>
 
@@ -392,10 +445,10 @@ export function ColaboradoresPage() {
               </div>
 
               <div className="modal-actions">
-                <button className="secondary-button" type="button" onClick={() => { setEditing(null); setForm(null); }}>Cancelar</button>
+                <button className="secondary-button" type="button" onClick={closeForm}>Cancelar</button>
                 <button className="primary-button" disabled={saving} type="submit">
                   <Save size={18} />
-                  {saving ? 'Guardando...' : 'Guardar cambios'}
+                  {saving ? 'Guardando...' : editing ? 'Guardar cambios' : 'Crear colaborador'}
                 </button>
               </div>
             </form>
@@ -404,6 +457,33 @@ export function ColaboradoresPage() {
       )}
     </section>
   );
+}
+
+async function fetchJefes(empresaId: string, departamentoId: string, excludeColaboradorId?: number) {
+  const params = new URLSearchParams();
+  if (empresaId) params.set('empresaId', empresaId);
+  if (departamentoId) params.set('departamentoId', departamentoId);
+  if (excludeColaboradorId) params.set('excludeColaboradorId', String(excludeColaboradorId));
+  return apiGet<PosibleJefe[]>(`/colaboradores/posibles-jefes${params.toString() ? `?${params}` : ''}`);
+}
+
+async function loadJefes(
+  empresaId: string,
+  departamentoId: string,
+  excludeColaboradorId: number | undefined,
+  setLoading?: Dispatch<SetStateAction<boolean>>,
+  setOptions?: Dispatch<SetStateAction<PosibleJefe[]>>,
+  setError?: Dispatch<SetStateAction<string>>
+) {
+  setLoading?.(true);
+  try {
+    const leaders = await fetchJefes(empresaId, departamentoId, excludeColaboradorId);
+    setOptions?.(leaders);
+  } catch (err) {
+    setError?.(err instanceof Error ? err.message : 'No se pudieron cargar jefes inmediatos.');
+  } finally {
+    setLoading?.(false);
+  }
 }
 
 function Select({
@@ -426,6 +506,40 @@ function Select({
         <option value="">{required ? 'Seleccione' : 'Todos'}</option>
         {options.map((item) => (
           <option key={item.id} value={item.id}>{item.nombre}</option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+function JefeSelect({
+  value,
+  onChange,
+  options,
+  currentId,
+  currentName,
+  loading
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  options: PosibleJefe[];
+  currentId?: number | null;
+  currentName?: string | null;
+  loading: boolean;
+}) {
+  const hasSelectedOption = !value || options.some((item) => String(item.colaboradorId) === value);
+  return (
+    <label className="span-2">
+      Jefe inmediato
+      <select value={value} onChange={(event) => onChange(event.target.value)} disabled={loading}>
+        <option value="">{loading ? 'Cargando jefes...' : 'Sin jefe inmediato'}</option>
+        {!hasSelectedOption && currentId && currentName && (
+          <option value={currentId}>{currentName} - fuera del filtro actual</option>
+        )}
+        {options.map((item) => (
+          <option key={item.colaboradorId} value={item.colaboradorId}>
+            {item.nombreCompleto} - {item.cargo} - {item.departamento}
+          </option>
         ))}
       </select>
     </label>
@@ -459,6 +573,44 @@ function updateForm<K extends keyof ColaboradorFormState>(
   value: ColaboradorFormState[K]
 ) {
   setter((current) => current ? { ...current, [key]: value } : current);
+}
+
+function emptyFormState(): ColaboradorFormState {
+  return {
+    noEmpleado: '',
+    cedula: '',
+    fechaVencimientoCedula: '',
+    seguroSocial: '',
+    primerNombre: '',
+    segundoNombre: '',
+    primerApellido: '',
+    segundoApellido: '',
+    sexo: '',
+    telefono: '',
+    email: '',
+    fechaNacimiento: '',
+    direccion: '',
+    empresaId: '',
+    departamentoId: '',
+    cargoId: '',
+    jefeInmediatoId: '',
+    fechaIngreso: todayDateInput(),
+    tipoContratoId: '',
+    fechaVencimientoContrato: '',
+    fechaVencimientoPeriodoProbatorio: '',
+    tieneLicencia: false,
+    numeroLicencia: '',
+    tipoLicencia: '',
+    fechaVencimientoLicencia: '',
+    estatusId: '',
+    salario: '0',
+    viaticos: '0',
+    gastosRepresentacion: '0',
+    fechaSalida: '',
+    motivoSalidaId: '',
+    vacante: false,
+    ultimaVacacion: ''
+  };
 }
 
 function toFormState(detail: ColaboradorDetalle): ColaboradorFormState {
@@ -539,6 +691,10 @@ function toPayload(form: ColaboradorFormState): ColaboradorUpsert {
 
 function toDateInput(value?: string | null) {
   return value ? value.slice(0, 10) : '';
+}
+
+function todayDateInput() {
+  return new Date().toISOString().slice(0, 10);
 }
 
 function optionalText(value: string) {

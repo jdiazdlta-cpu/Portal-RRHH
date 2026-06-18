@@ -19,6 +19,7 @@ public sealed class CreateUsuarioRequest
     public string NombreUsuario { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public string Password { get; set; } = string.Empty;
+    public string? ConfirmPassword { get; set; }
     public int RolId { get; set; }
     public bool IsActive { get; set; } = true;
 }
@@ -69,6 +70,14 @@ public sealed record ColaboradorListDto(
     DateTime FechaIngreso,
     DateTime? FechaSalida,
     bool IsActive);
+
+public sealed record PosibleJefeDto(
+    int ColaboradorId,
+    string NoEmpleado,
+    string NombreCompleto,
+    string Empresa,
+    string Departamento,
+    string Cargo);
 
 public sealed record DocumentoDto(
     int DocumentoColaboradorId,

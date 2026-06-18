@@ -85,6 +85,7 @@ internal static class ControllerHelpers
     public static IQueryable<Colaborador> IncludeDetalle(this IQueryable<Colaborador> query)
     {
         return query
+            .AsSplitQuery()
             .Include(x => x.Empresa)
             .Include(x => x.Departamento)
             .Include(x => x.Cargo)
