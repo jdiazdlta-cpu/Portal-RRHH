@@ -120,6 +120,19 @@ export type PosibleJefe = {
   cargo: string;
 };
 
+export type ColaboradorLookup = {
+  colaboradorId: number;
+  noEmpleado: string;
+  nombreCompleto: string;
+  empresaId: number;
+  empresa: string;
+  departamentoId: number;
+  departamento: string;
+  cargoId: number;
+  cargo: string;
+  estatus: string;
+};
+
 export type Documento = {
   documentoColaboradorId: number;
   tipoDocumentoId: number;
@@ -270,5 +283,300 @@ export type Cargo = {
   empresaId: number;
   empresa: string;
   nombre: string;
+  isActive: boolean;
+};
+
+export type TipoSolicitudDisponible = {
+  tipo: string;
+  nombre: string;
+  disponible: boolean;
+  estado: string;
+};
+
+export type SolicitudList = {
+  solicitudId: number;
+  codigoSolicitud: string;
+  tipoSolicitud: string;
+  estado: string;
+  solicitante: string;
+  empresa?: string | null;
+  departamento?: string | null;
+  fechaSolicitud: string;
+  ultimaActualizacion?: string | null;
+};
+
+export type RequisicionPersonal = {
+  requisicionPersonalId: number;
+  solicitudId: number;
+  cargoSolicitado: string;
+  departamentoSolicitadoId?: number | null;
+  departamentoSolicitado?: string | null;
+  numeroPlazas: number;
+  dependenciaJerarquica?: string | null;
+  principalesResponsabilidades?: string | null;
+  funcionesEspecificas?: string | null;
+  equipoACargo?: string | null;
+  centroTrabajo?: string | null;
+  salario?: number | null;
+  gastoRepresentacion?: number | null;
+  salarioVariable?: number | null;
+  otrosConceptos?: string | null;
+  esPosicionNueva: boolean;
+  esReemplazo: boolean;
+  colaboradorReemplazadoId?: number | null;
+  colaboradorReemplazado?: string | null;
+  nombrePersonaReemplazada?: string | null;
+  tipoContratoId?: number | null;
+  tipoContrato?: string | null;
+  periodoPrueba?: string | null;
+  formacionRequerida?: string | null;
+  formacionComplementaria?: string | null;
+  conocimientosTecnicos?: string | null;
+  conocimientosValorados?: string | null;
+  idiomaNivel?: string | null;
+  aniosExperiencia?: number | null;
+  funcionesExperiencia?: string | null;
+  areaSectorExperiencia?: string | null;
+  experienciaValorable?: string | null;
+  edadMinima?: number | null;
+  edadMaxima?: number | null;
+  sexoPreferido?: string | null;
+  caracteristicasPersonales?: string | null;
+  fechaAperturaProceso?: string | null;
+  fechaEntregaCandidatos?: string | null;
+  solicitadoPorTexto?: string | null;
+  autorizadoPorTexto?: string | null;
+  fechaAutorizacion?: string | null;
+};
+
+export type SolicitudAprobacion = {
+  solicitudAprobacionId: number;
+  orden: number;
+  etapa: string;
+  rolAprobador: string;
+  usuarioAprobadorId?: number | null;
+  usuarioAprobador?: string | null;
+  colaboradorAprobadorId?: number | null;
+  colaboradorAprobador?: string | null;
+  departamentoResponsableId?: number | null;
+  tipoResponsable?: string | null;
+  estado: string;
+  fechaDecision?: string | null;
+  comentario?: string | null;
+};
+
+export type SolicitudHistorial = {
+  solicitudHistorialId: number;
+  accion: string;
+  estadoAnterior?: string | null;
+  estadoNuevo?: string | null;
+  comentario?: string | null;
+  usuarioId: number;
+  usuario: string;
+  fecha: string;
+};
+
+export type SolicitudDetail = {
+  solicitudId: number;
+  codigoSolicitud: string;
+  tipoSolicitud: string;
+  estado: string;
+  solicitanteUsuarioId: number;
+  solicitante: string;
+  colaboradorId?: number | null;
+  empresaId?: number | null;
+  empresa?: string | null;
+  departamentoId?: number | null;
+  departamento?: string | null;
+  cargoId?: number | null;
+  cargo?: string | null;
+  fechaSolicitud: string;
+  fechaEfectiva?: string | null;
+  justificacion?: string | null;
+  observaciones?: string | null;
+  createdAt: string;
+  updatedAt?: string | null;
+  requisicion?: RequisicionPersonal | null;
+  aprobaciones: SolicitudAprobacion[];
+  historial: SolicitudHistorial[];
+  accionesDisponibles: string[];
+};
+
+export type RequisicionPersonalRequest = {
+  empresaId?: number | null;
+  departamentoSolicitadoId?: number | null;
+  fechaEfectiva?: string | null;
+  justificacion?: string | null;
+  observaciones?: string | null;
+  liderAprobadorUsuarioId?: number | null;
+  liderAprobadorColaboradorId?: number | null;
+  departamentoResponsableId?: number | null;
+  cargoSolicitado: string;
+  numeroPlazas: number;
+  dependenciaJerarquica?: string | null;
+  principalesResponsabilidades?: string | null;
+  funcionesEspecificas?: string | null;
+  equipoACargo?: string | null;
+  centroTrabajo?: string | null;
+  salario?: number | null;
+  gastoRepresentacion?: number | null;
+  salarioVariable?: number | null;
+  otrosConceptos?: string | null;
+  esPosicionNueva: boolean;
+  esReemplazo: boolean;
+  colaboradorReemplazadoId?: number | null;
+  nombrePersonaReemplazada?: string | null;
+  tipoContratoId?: number | null;
+  periodoPrueba?: string | null;
+  formacionRequerida?: string | null;
+  formacionComplementaria?: string | null;
+  conocimientosTecnicos?: string | null;
+  conocimientosValorados?: string | null;
+  idiomaNivel?: string | null;
+  aniosExperiencia?: number | null;
+  funcionesExperiencia?: string | null;
+  areaSectorExperiencia?: string | null;
+  experienciaValorable?: string | null;
+  edadMinima?: number | null;
+  edadMaxima?: number | null;
+  sexoPreferido?: string | null;
+  caracteristicasPersonales?: string | null;
+  fechaAperturaProceso?: string | null;
+  fechaEntregaCandidatos?: string | null;
+  solicitadoPorTexto?: string | null;
+  autorizadoPorTexto?: string | null;
+  fechaAutorizacion?: string | null;
+  enviar?: boolean;
+};
+
+export type OrganigramaList = {
+  organigramaId: number;
+  nombre: string;
+  empresaId?: number | null;
+  empresa?: string | null;
+  descripcion?: string | null;
+  fechaInicio: string;
+  fechaFin?: string | null;
+  nodos: number;
+  isActive: boolean;
+};
+
+export type OrganigramaDetail = {
+  organigramaId: number;
+  nombre: string;
+  empresaId?: number | null;
+  empresa?: string | null;
+  descripcion?: string | null;
+  fechaInicio: string;
+  fechaFin?: string | null;
+  isActive: boolean;
+  nodos: OrganigramaNodo[];
+  historial: OrganigramaHistorialCambio[];
+};
+
+export type OrganigramaNodo = {
+  organigramaNodoId: number;
+  organigramaId: number;
+  nodoPadreId?: number | null;
+  nodoPadre?: string | null;
+  nombreNodo: string;
+  empresaId?: number | null;
+  empresa?: string | null;
+  departamentoId?: number | null;
+  departamento?: string | null;
+  cargoId?: number | null;
+  cargo?: string | null;
+  nivel: number;
+  orden: number;
+  esRolOperativo: boolean;
+  colaboradoresActivos: number;
+  descripcion?: string | null;
+  isActive: boolean;
+};
+
+export type DepartamentoResponsable = {
+  departamentoResponsableId: number;
+  empresaId: number;
+  empresa: string;
+  departamentoId: number;
+  departamento: string;
+  colaboradorResponsableId: number;
+  noEmpleado: string;
+  colaboradorResponsable: string;
+  usuarioResponsableId?: number | null;
+  usuarioResponsable?: string | null;
+  tipoResponsable: string;
+  esPrincipal: boolean;
+  puedeAprobarSolicitudes: boolean;
+  fechaInicio: string;
+  fechaFin?: string | null;
+  observacion?: string | null;
+  isActive: boolean;
+  advertencias: string[];
+};
+
+export type AprobadorSolicitud = {
+  departamentoResponsableId: number;
+  empresaId: number;
+  empresa: string;
+  departamentoId: number;
+  departamento: string;
+  colaboradorResponsableId: number;
+  noEmpleado: string;
+  nombreCompleto: string;
+  cargo: string;
+  tipoResponsable: string;
+  usuarioResponsableId?: number | null;
+  usuarioResponsable?: string | null;
+  esPrincipal: boolean;
+  advertencias: string[];
+};
+
+export type OrganigramaHistorialCambio = {
+  organigramaHistorialCambioId: number;
+  entidad: string;
+  entidadId: number;
+  accion: string;
+  valorAnterior?: string | null;
+  valorNuevo?: string | null;
+  usuarioId: number;
+  usuario: string;
+  fecha: string;
+  comentario?: string | null;
+};
+
+export type OrganigramaRequest = {
+  nombre: string;
+  empresaId?: number | null;
+  descripcion?: string | null;
+  fechaInicio: string;
+  fechaFin?: string | null;
+  isActive: boolean;
+};
+
+export type OrganigramaNodoRequest = {
+  empresaId?: number | null;
+  departamentoId?: number | null;
+  cargoId?: number | null;
+  nodoPadreId?: number | null;
+  nombreNodo: string;
+  descripcion?: string | null;
+  nivel: number;
+  orden: number;
+  esRolOperativo: boolean;
+  isActive: boolean;
+};
+
+export type DepartamentoResponsableRequest = {
+  empresaId: number;
+  departamentoId: number;
+  colaboradorResponsableId: number;
+  usuarioResponsableId?: number | null;
+  tipoResponsable: string;
+  esPrincipal: boolean;
+  puedeAprobarSolicitudes: boolean;
+  fechaInicio: string;
+  fechaFin?: string | null;
+  observacion?: string | null;
   isActive: boolean;
 };

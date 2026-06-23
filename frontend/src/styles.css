@@ -755,6 +755,62 @@ td {
   grid-template-columns: repeat(2, minmax(180px, 260px));
 }
 
+.solicitudes-filter-row {
+  grid-template-columns: repeat(6, minmax(130px, 1fr)) auto;
+}
+
+.request-type-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.request-type-card {
+  min-height: 126px;
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 18px;
+  color: var(--dark);
+  background: #ffffff;
+  text-align: left;
+  box-shadow: 0 14px 34px rgba(31, 41, 55, 0.06);
+}
+
+.request-type-card:hover:not(:disabled) {
+  border-color: #c4b5fd;
+  background: #fbfaff;
+}
+
+.request-type-card:disabled {
+  cursor: not-allowed;
+}
+
+.request-type-card.disabled {
+  opacity: 0.62;
+}
+
+.request-type-card strong {
+  font-size: 17px;
+}
+
+.request-type-card small {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.request-type-icon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  color: var(--primary);
+  background: #ede9fe;
+}
+
 .dashboard-filters {
   display: grid;
   grid-template-columns: minmax(220px, 1.4fr) minmax(190px, 1fr) minmax(130px, 170px) minmax(160px, 220px);
@@ -810,6 +866,11 @@ td {
 .badge.neutral {
   color: #374151;
   background: #e5e7eb;
+}
+
+.badge.muted {
+  color: #4b5563;
+  background: #f3f4f6;
 }
 
 .action-menu {
@@ -986,6 +1047,10 @@ td {
   width: min(760px, 100%);
 }
 
+.solicitud-modal {
+  width: min(1180px, 100%);
+}
+
 .modal-header {
   position: sticky;
   top: 0;
@@ -1118,12 +1183,129 @@ td {
   background: #ffffff;
 }
 
+.solicitud-detail-body {
+  display: grid;
+  gap: 18px;
+  padding: 18px;
+}
+
+.detail-action-row {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.detail-section {
+  display: grid;
+  gap: 12px;
+}
+
+.detail-section h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.timeline-list {
+  display: grid;
+  gap: 10px;
+}
+
+.timeline-item {
+  display: grid;
+  grid-template-columns: minmax(110px, auto) 1fr minmax(140px, auto) minmax(110px, auto);
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfaff;
+}
+
+.timeline-item span {
+  font-weight: 900;
+}
+
+.timeline-item small,
+.timeline-item em {
+  color: var(--muted);
+  font-style: normal;
+}
+
+.timeline-item p {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--dark);
+}
+
 .empty-state {
   display: grid;
   place-items: center;
   min-height: 56px;
   color: var(--muted);
   font-weight: 800;
+}
+
+.tab-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tab-strip button {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text);
+  background: #ffffff;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.tab-strip button.active {
+  color: #ffffff;
+  border-color: var(--primary);
+  background: var(--primary);
+}
+
+.toolbar-row {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.toolbar-row label {
+  display: grid;
+  gap: 6px;
+  min-width: min(420px, 100%);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.toolbar-row select {
+  min-height: 42px;
+}
+
+.organigrama-filter-row {
+  grid-template-columns: repeat(2, minmax(180px, 260px)) auto;
+}
+
+.organigrama-section {
+  display: grid;
+  gap: 12px;
 }
 
 .screen-loader,
@@ -1169,7 +1351,11 @@ td {
   .form-grid,
   .dashboard-filters,
   .edit-form-grid,
-  .alert-context {
+  .alert-context,
+  .solicitudes-filter-row,
+  .organigrama-filter-row,
+  .request-type-grid,
+  .detail-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -1195,11 +1381,16 @@ td {
   .config-grid,
   .filter-row,
   .upload-row,
-  .form-grid,
-  .dashboard-filters,
-  .edit-form-grid,
-  .month-detail-grid,
-  .alert-context {
+    .form-grid,
+    .dashboard-filters,
+    .edit-form-grid,
+    .month-detail-grid,
+    .alert-context,
+    .solicitudes-filter-row,
+    .organigrama-filter-row,
+    .request-type-grid,
+    .detail-grid,
+    .timeline-item {
     grid-template-columns: 1fr;
   }
 

@@ -186,3 +186,181 @@ public sealed class HistorialColaborador : BaseEntity
     public Colaborador Colaborador { get; set; } = null!;
     public Usuario Usuario { get; set; } = null!;
 }
+
+public sealed class Solicitud : BaseEntity
+{
+    public int SolicitudId { get; set; }
+    public string CodigoSolicitud { get; set; } = string.Empty;
+    public TipoSolicitud TipoSolicitud { get; set; }
+    public EstadoSolicitud Estado { get; set; } = EstadoSolicitud.Borrador;
+    public int SolicitanteUsuarioId { get; set; }
+    public int? ColaboradorId { get; set; }
+    public int? EmpresaId { get; set; }
+    public int? DepartamentoId { get; set; }
+    public int? CargoId { get; set; }
+    public DateTime FechaSolicitud { get; set; } = DateTime.UtcNow;
+    public DateTime? FechaEfectiva { get; set; }
+    public string? Justificacion { get; set; }
+    public string? Observaciones { get; set; }
+
+    public Usuario SolicitanteUsuario { get; set; } = null!;
+    public Colaborador? Colaborador { get; set; }
+    public Empresa? Empresa { get; set; }
+    public Departamento? Departamento { get; set; }
+    public Cargo? Cargo { get; set; }
+    public RequisicionPersonal? RequisicionPersonal { get; set; }
+    public ICollection<SolicitudAprobacion> Aprobaciones { get; set; } = new List<SolicitudAprobacion>();
+    public ICollection<SolicitudHistorial> Historial { get; set; } = new List<SolicitudHistorial>();
+}
+
+public sealed class RequisicionPersonal : BaseEntity
+{
+    public int RequisicionPersonalId { get; set; }
+    public int SolicitudId { get; set; }
+    public string CargoSolicitado { get; set; } = string.Empty;
+    public int? DepartamentoSolicitadoId { get; set; }
+    public int NumeroPlazas { get; set; } = 1;
+    public string? DependenciaJerarquica { get; set; }
+    public string? PrincipalesResponsabilidades { get; set; }
+    public string? FuncionesEspecificas { get; set; }
+    public string? EquipoACargo { get; set; }
+    public string? CentroTrabajo { get; set; }
+    public decimal? Salario { get; set; }
+    public decimal? GastoRepresentacion { get; set; }
+    public decimal? SalarioVariable { get; set; }
+    public string? OtrosConceptos { get; set; }
+    public bool EsPosicionNueva { get; set; }
+    public bool EsReemplazo { get; set; }
+    public int? ColaboradorReemplazadoId { get; set; }
+    public string? NombrePersonaReemplazada { get; set; }
+    public int? TipoContratoId { get; set; }
+    public string? PeriodoPrueba { get; set; }
+    public string? FormacionRequerida { get; set; }
+    public string? FormacionComplementaria { get; set; }
+    public string? ConocimientosTecnicos { get; set; }
+    public string? ConocimientosValorados { get; set; }
+    public string? IdiomaNivel { get; set; }
+    public int? AniosExperiencia { get; set; }
+    public string? FuncionesExperiencia { get; set; }
+    public string? AreaSectorExperiencia { get; set; }
+    public string? ExperienciaValorable { get; set; }
+    public int? EdadMinima { get; set; }
+    public int? EdadMaxima { get; set; }
+    public string? SexoPreferido { get; set; }
+    public string? CaracteristicasPersonales { get; set; }
+    public DateTime? FechaAperturaProceso { get; set; }
+    public DateTime? FechaEntregaCandidatos { get; set; }
+    public string? SolicitadoPorTexto { get; set; }
+    public string? AutorizadoPorTexto { get; set; }
+    public DateTime? FechaAutorizacion { get; set; }
+
+    public Solicitud Solicitud { get; set; } = null!;
+    public Departamento? DepartamentoSolicitado { get; set; }
+    public Colaborador? ColaboradorReemplazado { get; set; }
+    public TipoContrato? TipoContrato { get; set; }
+}
+
+public sealed class SolicitudAprobacion : BaseEntity
+{
+    public int SolicitudAprobacionId { get; set; }
+    public int SolicitudId { get; set; }
+    public int Orden { get; set; }
+    public EtapaAprobacion Etapa { get; set; }
+    public string RolAprobador { get; set; } = string.Empty;
+    public int? UsuarioAprobadorId { get; set; }
+    public int? ColaboradorAprobadorId { get; set; }
+    public int? DepartamentoResponsableId { get; set; }
+    public EstadoAprobacion Estado { get; set; } = EstadoAprobacion.Pendiente;
+    public DateTime? FechaDecision { get; set; }
+    public string? Comentario { get; set; }
+
+    public Solicitud Solicitud { get; set; } = null!;
+    public Usuario? UsuarioAprobador { get; set; }
+    public Colaborador? ColaboradorAprobador { get; set; }
+    public DepartamentoResponsable? DepartamentoResponsable { get; set; }
+}
+
+public sealed class SolicitudHistorial
+{
+    public int SolicitudHistorialId { get; set; }
+    public int SolicitudId { get; set; }
+    public string Accion { get; set; } = string.Empty;
+    public EstadoSolicitud? EstadoAnterior { get; set; }
+    public EstadoSolicitud? EstadoNuevo { get; set; }
+    public string? Comentario { get; set; }
+    public int UsuarioId { get; set; }
+    public DateTime Fecha { get; set; } = DateTime.UtcNow;
+
+    public Solicitud Solicitud { get; set; } = null!;
+    public Usuario Usuario { get; set; } = null!;
+}
+
+public sealed class Organigrama : BaseEntity
+{
+    public int OrganigramaId { get; set; }
+    public string Nombre { get; set; } = string.Empty;
+    public int? EmpresaId { get; set; }
+    public string? Descripcion { get; set; }
+    public DateTime FechaInicio { get; set; }
+    public DateTime? FechaFin { get; set; }
+
+    public Empresa? Empresa { get; set; }
+    public ICollection<OrganigramaNodo> Nodos { get; set; } = new List<OrganigramaNodo>();
+}
+
+public sealed class OrganigramaNodo : BaseEntity
+{
+    public int OrganigramaNodoId { get; set; }
+    public int OrganigramaId { get; set; }
+    public int? EmpresaId { get; set; }
+    public int? DepartamentoId { get; set; }
+    public int? CargoId { get; set; }
+    public int? NodoPadreId { get; set; }
+    public string NombreNodo { get; set; } = string.Empty;
+    public string? Descripcion { get; set; }
+    public int Nivel { get; set; }
+    public int Orden { get; set; }
+    public bool EsRolOperativo { get; set; }
+
+    public Organigrama Organigrama { get; set; } = null!;
+    public Empresa? Empresa { get; set; }
+    public Departamento? Departamento { get; set; }
+    public Cargo? Cargo { get; set; }
+    public OrganigramaNodo? NodoPadre { get; set; }
+    public ICollection<OrganigramaNodo> Hijos { get; set; } = new List<OrganigramaNodo>();
+}
+
+public sealed class DepartamentoResponsable : BaseEntity
+{
+    public int DepartamentoResponsableId { get; set; }
+    public int EmpresaId { get; set; }
+    public int DepartamentoId { get; set; }
+    public int ColaboradorResponsableId { get; set; }
+    public int? UsuarioResponsableId { get; set; }
+    public string TipoResponsable { get; set; } = string.Empty;
+    public bool EsPrincipal { get; set; }
+    public bool PuedeAprobarSolicitudes { get; set; }
+    public DateTime FechaInicio { get; set; }
+    public DateTime? FechaFin { get; set; }
+    public string? Observacion { get; set; }
+
+    public Empresa Empresa { get; set; } = null!;
+    public Departamento Departamento { get; set; } = null!;
+    public Colaborador ColaboradorResponsable { get; set; } = null!;
+    public Usuario? UsuarioResponsable { get; set; }
+}
+
+public sealed class OrganigramaHistorialCambio
+{
+    public int OrganigramaHistorialCambioId { get; set; }
+    public string Entidad { get; set; } = string.Empty;
+    public int EntidadId { get; set; }
+    public string Accion { get; set; } = string.Empty;
+    public string? ValorAnterior { get; set; }
+    public string? ValorNuevo { get; set; }
+    public int UsuarioId { get; set; }
+    public DateTime Fecha { get; set; } = DateTime.UtcNow;
+    public string? Comentario { get; set; }
+
+    public Usuario Usuario { get; set; } = null!;
+}

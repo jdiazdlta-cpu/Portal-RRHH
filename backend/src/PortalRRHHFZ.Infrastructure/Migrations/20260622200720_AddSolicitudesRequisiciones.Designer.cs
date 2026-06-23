@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using PortalRRHHFZ.Infrastructure.Data;
 
@@ -11,9 +12,11 @@ using PortalRRHHFZ.Infrastructure.Data;
 namespace PortalRRHHFZ.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260622200720_AddSolicitudesRequisiciones")]
+    partial class AddSolicitudesRequisiciones
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -337,75 +340,6 @@ namespace PortalRRHHFZ.Infrastructure.Migrations
                     b.ToTable("Departamentos", (string)null);
                 });
 
-            modelBuilder.Entity("PortalRRHHFZ.Domain.Entities.DepartamentoResponsable", b =>
-                {
-                    b.Property<int>("DepartamentoResponsableId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("DepartamentoResponsableId"));
-
-                    b.Property<int>("ColaboradorResponsableId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("DepartamentoId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("EmpresaId")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("EsPrincipal")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime?>("FechaFin")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("FechaInicio")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Observacion")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<bool>("PuedeAprobarSolicitudes")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("TipoResponsable")
-                        .IsRequired()
-                        .HasMaxLength(80)
-                        .HasColumnType("nvarchar(80)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int?>("UsuarioResponsableId")
-                        .HasColumnType("int");
-
-                    b.HasKey("DepartamentoResponsableId");
-
-                    b.HasIndex("ColaboradorResponsableId");
-
-                    b.HasIndex("UsuarioResponsableId");
-
-                    b.HasIndex("DepartamentoId", "PuedeAprobarSolicitudes", "IsActive");
-
-                    b.HasIndex("EmpresaId", "DepartamentoId", "TipoResponsable", "IsActive");
-
-                    b.ToTable("DepartamentoResponsables", (string)null);
-                });
-
             modelBuilder.Entity("PortalRRHHFZ.Domain.Entities.DocumentoColaborador", b =>
                 {
                     b.Property<int>("DocumentoColaboradorId")
@@ -722,173 +656,6 @@ namespace PortalRRHHFZ.Infrastructure.Migrations
                             IsActive = true,
                             Nombre = "No aplica"
                         });
-                });
-
-            modelBuilder.Entity("PortalRRHHFZ.Domain.Entities.Organigrama", b =>
-                {
-                    b.Property<int>("OrganigramaId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("OrganigramaId"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Descripcion")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<int?>("EmpresaId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("FechaFin")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("FechaInicio")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Nombre")
-                        .IsRequired()
-                        .HasMaxLength(180)
-                        .HasColumnType("nvarchar(180)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("OrganigramaId");
-
-                    b.HasIndex("EmpresaId", "IsActive");
-
-                    b.ToTable("Organigramas", (string)null);
-                });
-
-            modelBuilder.Entity("PortalRRHHFZ.Domain.Entities.OrganigramaHistorialCambio", b =>
-                {
-                    b.Property<int>("OrganigramaHistorialCambioId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("OrganigramaHistorialCambioId"));
-
-                    b.Property<string>("Accion")
-                        .IsRequired()
-                        .HasMaxLength(80)
-                        .HasColumnType("nvarchar(80)");
-
-                    b.Property<string>("Comentario")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<string>("Entidad")
-                        .IsRequired()
-                        .HasMaxLength(80)
-                        .HasColumnType("nvarchar(80)");
-
-                    b.Property<int>("EntidadId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("Fecha")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("UsuarioId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("ValorAnterior")
-                        .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
-
-                    b.Property<string>("ValorNuevo")
-                        .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
-
-                    b.HasKey("OrganigramaHistorialCambioId");
-
-                    b.HasIndex("UsuarioId");
-
-                    b.HasIndex("Entidad", "EntidadId", "Fecha");
-
-                    b.ToTable("OrganigramaHistorialCambios", (string)null);
-                });
-
-            modelBuilder.Entity("PortalRRHHFZ.Domain.Entities.OrganigramaNodo", b =>
-                {
-                    b.Property<int>("OrganigramaNodoId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("OrganigramaNodoId"));
-
-                    b.Property<int?>("CargoId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int?>("DepartamentoId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Descripcion")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<int?>("EmpresaId")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("EsRolOperativo")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("Nivel")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("NodoPadreId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("NombreNodo")
-                        .IsRequired()
-                        .HasMaxLength(180)
-                        .HasColumnType("nvarchar(180)");
-
-                    b.Property<int>("Orden")
-                        .HasColumnType("int");
-
-                    b.Property<int>("OrganigramaId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("OrganigramaNodoId");
-
-                    b.HasIndex("CargoId");
-
-                    b.HasIndex("DepartamentoId");
-
-                    b.HasIndex("EmpresaId");
-
-                    b.HasIndex("NodoPadreId");
-
-                    b.HasIndex("OrganigramaId", "Nivel", "Orden");
-
-                    b.ToTable("OrganigramaNodos", (string)null);
                 });
 
             modelBuilder.Entity("PortalRRHHFZ.Domain.Entities.RequisicionPersonal", b =>
@@ -1230,9 +997,6 @@ namespace PortalRRHHFZ.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SolicitudAprobacionId"));
 
-                    b.Property<int?>("ColaboradorAprobadorId")
-                        .HasColumnType("int");
-
                     b.Property<string>("Comentario")
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
@@ -1242,9 +1006,6 @@ namespace PortalRRHHFZ.Infrastructure.Migrations
 
                     b.Property<string>("CreatedBy")
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<int?>("DepartamentoResponsableId")
-                        .HasColumnType("int");
 
                     b.Property<string>("Estado")
                         .IsRequired()
@@ -1283,10 +1044,6 @@ namespace PortalRRHHFZ.Infrastructure.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("SolicitudAprobacionId");
-
-                    b.HasIndex("ColaboradorAprobadorId");
-
-                    b.HasIndex("DepartamentoResponsableId");
 
                     b.HasIndex("UsuarioAprobadorId");
 
@@ -1675,40 +1432,6 @@ namespace PortalRRHHFZ.Infrastructure.Migrations
                     b.Navigation("Empresa");
                 });
 
-            modelBuilder.Entity("PortalRRHHFZ.Domain.Entities.DepartamentoResponsable", b =>
-                {
-                    b.HasOne("PortalRRHHFZ.Domain.Entities.Colaborador", "ColaboradorResponsable")
-                        .WithMany()
-                        .HasForeignKey("ColaboradorResponsableId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("PortalRRHHFZ.Domain.Entities.Departamento", "Departamento")
-                        .WithMany()
-                        .HasForeignKey("DepartamentoId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("PortalRRHHFZ.Domain.Entities.Empresa", "Empresa")
-                        .WithMany()
-                        .HasForeignKey("EmpresaId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("PortalRRHHFZ.Domain.Entities.Usuario", "UsuarioResponsable")
-                        .WithMany()
-                        .HasForeignKey("UsuarioResponsableId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("ColaboradorResponsable");
-
-                    b.Navigation("Departamento");
-
-                    b.Navigation("Empresa");
-
-                    b.Navigation("UsuarioResponsable");
-                });
-
             modelBuilder.Entity("PortalRRHHFZ.Domain.Entities.DocumentoColaborador", b =>
                 {
                     b.HasOne("PortalRRHHFZ.Domain.Entities.Colaborador", "Colaborador")
@@ -1753,66 +1476,6 @@ namespace PortalRRHHFZ.Infrastructure.Migrations
                     b.Navigation("Colaborador");
 
                     b.Navigation("Usuario");
-                });
-
-            modelBuilder.Entity("PortalRRHHFZ.Domain.Entities.Organigrama", b =>
-                {
-                    b.HasOne("PortalRRHHFZ.Domain.Entities.Empresa", "Empresa")
-                        .WithMany()
-                        .HasForeignKey("EmpresaId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("Empresa");
-                });
-
-            modelBuilder.Entity("PortalRRHHFZ.Domain.Entities.OrganigramaHistorialCambio", b =>
-                {
-                    b.HasOne("PortalRRHHFZ.Domain.Entities.Usuario", "Usuario")
-                        .WithMany()
-                        .HasForeignKey("UsuarioId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Usuario");
-                });
-
-            modelBuilder.Entity("PortalRRHHFZ.Domain.Entities.OrganigramaNodo", b =>
-                {
-                    b.HasOne("PortalRRHHFZ.Domain.Entities.Cargo", "Cargo")
-                        .WithMany()
-                        .HasForeignKey("CargoId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("PortalRRHHFZ.Domain.Entities.Departamento", "Departamento")
-                        .WithMany()
-                        .HasForeignKey("DepartamentoId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("PortalRRHHFZ.Domain.Entities.Empresa", "Empresa")
-                        .WithMany()
-                        .HasForeignKey("EmpresaId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("PortalRRHHFZ.Domain.Entities.OrganigramaNodo", "NodoPadre")
-                        .WithMany("Hijos")
-                        .HasForeignKey("NodoPadreId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("PortalRRHHFZ.Domain.Entities.Organigrama", "Organigrama")
-                        .WithMany("Nodos")
-                        .HasForeignKey("OrganigramaId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Cargo");
-
-                    b.Navigation("Departamento");
-
-                    b.Navigation("Empresa");
-
-                    b.Navigation("NodoPadre");
-
-                    b.Navigation("Organigrama");
                 });
 
             modelBuilder.Entity("PortalRRHHFZ.Domain.Entities.RequisicionPersonal", b =>
@@ -1888,16 +1551,6 @@ namespace PortalRRHHFZ.Infrastructure.Migrations
 
             modelBuilder.Entity("PortalRRHHFZ.Domain.Entities.SolicitudAprobacion", b =>
                 {
-                    b.HasOne("PortalRRHHFZ.Domain.Entities.Colaborador", "ColaboradorAprobador")
-                        .WithMany()
-                        .HasForeignKey("ColaboradorAprobadorId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("PortalRRHHFZ.Domain.Entities.DepartamentoResponsable", "DepartamentoResponsable")
-                        .WithMany()
-                        .HasForeignKey("DepartamentoResponsableId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("PortalRRHHFZ.Domain.Entities.Solicitud", "Solicitud")
                         .WithMany("Aprobaciones")
                         .HasForeignKey("SolicitudId")
@@ -1908,10 +1561,6 @@ namespace PortalRRHHFZ.Infrastructure.Migrations
                         .WithMany()
                         .HasForeignKey("UsuarioAprobadorId")
                         .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("ColaboradorAprobador");
-
-                    b.Navigation("DepartamentoResponsable");
 
                     b.Navigation("Solicitud");
 
@@ -1991,16 +1640,6 @@ namespace PortalRRHHFZ.Infrastructure.Migrations
             modelBuilder.Entity("PortalRRHHFZ.Domain.Entities.MotivoSalida", b =>
                 {
                     b.Navigation("Colaboradores");
-                });
-
-            modelBuilder.Entity("PortalRRHHFZ.Domain.Entities.Organigrama", b =>
-                {
-                    b.Navigation("Nodos");
-                });
-
-            modelBuilder.Entity("PortalRRHHFZ.Domain.Entities.OrganigramaNodo", b =>
-                {
-                    b.Navigation("Hijos");
                 });
 
             modelBuilder.Entity("PortalRRHHFZ.Domain.Entities.Rol", b =>

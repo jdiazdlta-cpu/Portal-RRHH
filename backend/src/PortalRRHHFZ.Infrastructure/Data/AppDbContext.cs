@@ -19,6 +19,14 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<DocumentoColaborador> DocumentosColaborador => Set<DocumentoColaborador>();
     public DbSet<Alerta> Alertas => Set<Alerta>();
     public DbSet<HistorialColaborador> HistorialColaborador => Set<HistorialColaborador>();
+    public DbSet<Solicitud> Solicitudes => Set<Solicitud>();
+    public DbSet<RequisicionPersonal> RequisicionesPersonal => Set<RequisicionPersonal>();
+    public DbSet<SolicitudAprobacion> SolicitudAprobaciones => Set<SolicitudAprobacion>();
+    public DbSet<SolicitudHistorial> SolicitudHistorial => Set<SolicitudHistorial>();
+    public DbSet<Organigrama> Organigramas => Set<Organigrama>();
+    public DbSet<OrganigramaNodo> OrganigramaNodos => Set<OrganigramaNodo>();
+    public DbSet<DepartamentoResponsable> DepartamentoResponsables => Set<DepartamentoResponsable>();
+    public DbSet<OrganigramaHistorialCambio> OrganigramaHistorialCambios => Set<OrganigramaHistorialCambio>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -201,6 +209,139 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             entity.Property(x => x.Observacion).HasMaxLength(1000);
             entity.HasOne(x => x.Colaborador).WithMany(x => x.Historiales).HasForeignKey(x => x.ColaboradorId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(x => x.Usuario).WithMany(x => x.Historiales).HasForeignKey(x => x.UsuarioId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<Solicitud>(entity =>
+        {
+            entity.ToTable("Solicitudes");
+            entity.HasKey(x => x.SolicitudId);
+            entity.Property(x => x.CodigoSolicitud).HasMaxLength(30).IsRequired();
+            entity.Property(x => x.TipoSolicitud).HasConversion<string>().HasMaxLength(50).IsRequired();
+            entity.Property(x => x.Estado).HasConversion<string>().HasMaxLength(50).IsRequired();
+            entity.Property(x => x.Justificacion).HasMaxLength(2000);
+            entity.Property(x => x.Observaciones).HasMaxLength(2000);
+            entity.HasIndex(x => x.CodigoSolicitud).IsUnique();
+            entity.HasIndex(x => new { x.TipoSolicitud, x.Estado });
+            entity.HasOne(x => x.SolicitanteUsuario).WithMany().HasForeignKey(x => x.SolicitanteUsuarioId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.Colaborador).WithMany().HasForeignKey(x => x.ColaboradorId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.Empresa).WithMany().HasForeignKey(x => x.EmpresaId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.Departamento).WithMany().HasForeignKey(x => x.DepartamentoId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.Cargo).WithMany().HasForeignKey(x => x.CargoId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<RequisicionPersonal>(entity =>
+        {
+            entity.ToTable("RequisicionesPersonal");
+            entity.HasKey(x => x.RequisicionPersonalId);
+            entity.Property(x => x.CargoSolicitado).HasMaxLength(180).IsRequired();
+            entity.Property(x => x.DependenciaJerarquica).HasMaxLength(250);
+            entity.Property(x => x.PrincipalesResponsabilidades).HasMaxLength(3000);
+            entity.Property(x => x.FuncionesEspecificas).HasMaxLength(3000);
+            entity.Property(x => x.EquipoACargo).HasMaxLength(1000);
+            entity.Property(x => x.CentroTrabajo).HasMaxLength(180);
+            entity.Property(x => x.Salario).HasColumnType("decimal(18,2)");
+            entity.Property(x => x.GastoRepresentacion).HasColumnType("decimal(18,2)");
+            entity.Property(x => x.SalarioVariable).HasColumnType("decimal(18,2)");
+            entity.Property(x => x.OtrosConceptos).HasMaxLength(1000);
+            entity.Property(x => x.NombrePersonaReemplazada).HasMaxLength(180);
+            entity.Property(x => x.PeriodoPrueba).HasMaxLength(120);
+            entity.Property(x => x.FormacionRequerida).HasMaxLength(2000);
+            entity.Property(x => x.FormacionComplementaria).HasMaxLength(2000);
+            entity.Property(x => x.ConocimientosTecnicos).HasMaxLength(2000);
+            entity.Property(x => x.ConocimientosValorados).HasMaxLength(2000);
+            entity.Property(x => x.IdiomaNivel).HasMaxLength(300);
+            entity.Property(x => x.FuncionesExperiencia).HasMaxLength(2000);
+            entity.Property(x => x.AreaSectorExperiencia).HasMaxLength(1000);
+            entity.Property(x => x.ExperienciaValorable).HasMaxLength(2000);
+            entity.Property(x => x.SexoPreferido).HasMaxLength(40);
+            entity.Property(x => x.CaracteristicasPersonales).HasMaxLength(2000);
+            entity.Property(x => x.SolicitadoPorTexto).HasMaxLength(180);
+            entity.Property(x => x.AutorizadoPorTexto).HasMaxLength(180);
+            entity.HasIndex(x => x.SolicitudId).IsUnique();
+            entity.HasOne(x => x.Solicitud).WithOne(x => x.RequisicionPersonal).HasForeignKey<RequisicionPersonal>(x => x.SolicitudId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.DepartamentoSolicitado).WithMany().HasForeignKey(x => x.DepartamentoSolicitadoId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.ColaboradorReemplazado).WithMany().HasForeignKey(x => x.ColaboradorReemplazadoId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.TipoContrato).WithMany().HasForeignKey(x => x.TipoContratoId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<SolicitudAprobacion>(entity =>
+        {
+            entity.ToTable("SolicitudAprobaciones");
+            entity.HasKey(x => x.SolicitudAprobacionId);
+            entity.Property(x => x.Etapa).HasConversion<string>().HasMaxLength(50).IsRequired();
+            entity.Property(x => x.RolAprobador).HasMaxLength(80).IsRequired();
+            entity.Property(x => x.Estado).HasConversion<string>().HasMaxLength(50).IsRequired();
+            entity.Property(x => x.Comentario).HasMaxLength(1000);
+            entity.HasIndex(x => new { x.SolicitudId, x.Orden }).IsUnique();
+            entity.HasOne(x => x.Solicitud).WithMany(x => x.Aprobaciones).HasForeignKey(x => x.SolicitudId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.UsuarioAprobador).WithMany().HasForeignKey(x => x.UsuarioAprobadorId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.ColaboradorAprobador).WithMany().HasForeignKey(x => x.ColaboradorAprobadorId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.DepartamentoResponsable).WithMany().HasForeignKey(x => x.DepartamentoResponsableId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<SolicitudHistorial>(entity =>
+        {
+            entity.ToTable("SolicitudHistorial");
+            entity.HasKey(x => x.SolicitudHistorialId);
+            entity.Property(x => x.Accion).HasMaxLength(80).IsRequired();
+            entity.Property(x => x.EstadoAnterior).HasConversion<string>().HasMaxLength(50);
+            entity.Property(x => x.EstadoNuevo).HasConversion<string>().HasMaxLength(50);
+            entity.Property(x => x.Comentario).HasMaxLength(1000);
+            entity.HasIndex(x => new { x.SolicitudId, x.Fecha });
+            entity.HasOne(x => x.Solicitud).WithMany(x => x.Historial).HasForeignKey(x => x.SolicitudId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.Usuario).WithMany().HasForeignKey(x => x.UsuarioId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<Organigrama>(entity =>
+        {
+            entity.ToTable("Organigramas");
+            entity.HasKey(x => x.OrganigramaId);
+            entity.Property(x => x.Nombre).HasMaxLength(180).IsRequired();
+            entity.Property(x => x.Descripcion).HasMaxLength(1000);
+            entity.HasIndex(x => new { x.EmpresaId, x.IsActive });
+            entity.HasOne(x => x.Empresa).WithMany().HasForeignKey(x => x.EmpresaId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<OrganigramaNodo>(entity =>
+        {
+            entity.ToTable("OrganigramaNodos");
+            entity.HasKey(x => x.OrganigramaNodoId);
+            entity.Property(x => x.NombreNodo).HasMaxLength(180).IsRequired();
+            entity.Property(x => x.Descripcion).HasMaxLength(1000);
+            entity.HasIndex(x => new { x.OrganigramaId, x.Nivel, x.Orden });
+            entity.HasIndex(x => x.NodoPadreId);
+            entity.HasOne(x => x.Organigrama).WithMany(x => x.Nodos).HasForeignKey(x => x.OrganigramaId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.Empresa).WithMany().HasForeignKey(x => x.EmpresaId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.Departamento).WithMany().HasForeignKey(x => x.DepartamentoId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.Cargo).WithMany().HasForeignKey(x => x.CargoId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.NodoPadre).WithMany(x => x.Hijos).HasForeignKey(x => x.NodoPadreId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<DepartamentoResponsable>(entity =>
+        {
+            entity.ToTable("DepartamentoResponsables");
+            entity.HasKey(x => x.DepartamentoResponsableId);
+            entity.Property(x => x.TipoResponsable).HasMaxLength(80).IsRequired();
+            entity.Property(x => x.Observacion).HasMaxLength(1000);
+            entity.HasIndex(x => new { x.EmpresaId, x.DepartamentoId, x.TipoResponsable, x.IsActive });
+            entity.HasIndex(x => new { x.DepartamentoId, x.PuedeAprobarSolicitudes, x.IsActive });
+            entity.HasOne(x => x.Empresa).WithMany().HasForeignKey(x => x.EmpresaId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.Departamento).WithMany().HasForeignKey(x => x.DepartamentoId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.ColaboradorResponsable).WithMany().HasForeignKey(x => x.ColaboradorResponsableId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.UsuarioResponsable).WithMany().HasForeignKey(x => x.UsuarioResponsableId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<OrganigramaHistorialCambio>(entity =>
+        {
+            entity.ToTable("OrganigramaHistorialCambios");
+            entity.HasKey(x => x.OrganigramaHistorialCambioId);
+            entity.Property(x => x.Entidad).HasMaxLength(80).IsRequired();
+            entity.Property(x => x.Accion).HasMaxLength(80).IsRequired();
+            entity.Property(x => x.ValorAnterior).HasMaxLength(2000);
+            entity.Property(x => x.ValorNuevo).HasMaxLength(2000);
+            entity.Property(x => x.Comentario).HasMaxLength(1000);
+            entity.HasIndex(x => new { x.Entidad, x.EntidadId, x.Fecha });
+            entity.HasOne(x => x.Usuario).WithMany().HasForeignKey(x => x.UsuarioId).OnDelete(DeleteBehavior.Restrict);
         });
     }
 

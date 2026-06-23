@@ -53,6 +53,7 @@ builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy(AppPolicies.RequireAdmin, policy => policy.RequireRole(AppRoles.Admin));
     options.AddPolicy(AppPolicies.RequireAdminOrRRHH, policy => policy.RequireRole(AppRoles.Admin, AppRoles.RRHH));
+    options.AddPolicy(AppPolicies.RequireSolicitudes, policy => policy.RequireRole(AppRoles.Admin, AppRoles.RRHH, AppRoles.Supervisor));
     options.AddPolicy(AppPolicies.RequireSupervisor, policy => policy.RequireRole(AppRoles.Supervisor));
     options.AddPolicy(AppPolicies.RequireConsulta, policy => policy.RequireRole(AppRoles.Consulta));
 });

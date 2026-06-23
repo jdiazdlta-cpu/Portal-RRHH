@@ -1,22 +1,25 @@
-import { Bell, LayoutDashboard, LogOut, Menu, Settings, Users } from 'lucide-react';
+import { Bell, FileText, LayoutDashboard, LogOut, Menu, Network, Settings, Users } from 'lucide-react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 
 export function AppLayout() {
   const { user, logout } = useAuth();
+  const commonItems = [
+    { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { to: '/colaboradores', label: 'Colaboradores', icon: Users },
+    { to: '/alertas', label: 'Alertas', icon: Bell },
+    { to: '/organigrama', label: 'Organigrama', icon: Network },
+    { to: '/solicitudes', label: 'Solicitudes', icon: FileText }
+  ];
   const items = user?.rol === 'Admin'
     ? [
-        { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-        { to: '/colaboradores', label: 'Colaboradores', icon: Users },
-        { to: '/alertas', label: 'Alertas', icon: Bell },
+        ...commonItems,
         { to: '/usuarios', label: 'Usuarios', icon: Users },
         { to: '/configuracion', label: 'Configuracion', icon: Settings }
       ]
-    : [
-        { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-        { to: '/colaboradores', label: 'Colaboradores', icon: Users },
-        { to: '/alertas', label: 'Alertas', icon: Bell }
-      ];
+    : user?.rol === 'RRHH'
+      ? commonItems
+      : [{ to: '/solicitudes', label: 'Solicitudes', icon: FileText }];
 
   return (
     <div className="app-shell">

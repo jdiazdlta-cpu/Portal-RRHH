@@ -9,7 +9,7 @@ using PortalRRHHFZ.Infrastructure.Data;
 namespace PortalRRHHFZ.Api.Controllers;
 
 [ApiController]
-[Authorize(Policy = AppPolicies.RequireAdminOrRRHH)]
+[Authorize(Policy = AppPolicies.RequireSolicitudes)]
 [Route("api/catalogos")]
 public sealed class CatalogosController(AppDbContext db) : ControllerBase
 {
