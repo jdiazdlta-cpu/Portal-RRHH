@@ -10,5 +10,6 @@ public enum EstadoSolicitud
     Rechazada = 6,
     Aprobada = 7,
     Cancelada = 8,
-    Cerrada = 9
+    Cerrada = 9,
+    Ejecutada = 10
 }

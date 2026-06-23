@@ -161,6 +161,7 @@ public sealed record SolicitudDetailDto(
     DateTime CreatedAt,
     DateTime? UpdatedAt,
     RequisicionPersonalDto? Requisicion,
+    AccionPersonalDto? AccionPersonal,
     IReadOnlyList<SolicitudAprobacionDto> Aprobaciones,
     IReadOnlyList<SolicitudHistorialDto> Historial,
     IReadOnlyList<string> AccionesDisponibles);
@@ -207,6 +208,117 @@ public sealed record RequisicionPersonalDto(
     string? SolicitadoPorTexto,
     string? AutorizadoPorTexto,
     DateTime? FechaAutorizacion);
+
+public sealed record TipoAccionPersonalDto(string Tipo, string Nombre, bool RequiereColaborador);
+
+public sealed record AccionPersonalDto(
+    int AccionPersonalId,
+    int SolicitudId,
+    string TipoAccion,
+    string TipoAccionNombre,
+    int? ColaboradorId,
+    string? Colaborador,
+    string? NoEmpleadoSnapshot,
+    string? CedulaSnapshot,
+    DateTime FechaEfectiva,
+    string Justificacion,
+    string? Observaciones,
+    int? EmpresaActualId,
+    string? EmpresaActual,
+    int? DepartamentoActualId,
+    string? DepartamentoActual,
+    int? CargoActualId,
+    string? CargoActual,
+    int? JefeActualId,
+    string? JefeActual,
+    int? TipoContratoActualId,
+    string? TipoContratoActual,
+    int? EstatusActualId,
+    string? EstatusActual,
+    decimal? SalarioActual,
+    decimal? ViaticosActual,
+    decimal? GastosRepresentacionActual,
+    int? DiasVacaciones,
+    DateTime? FechaInicioVacaciones,
+    DateTime? FechaFinVacaciones,
+    DateTime? PeriodoVacacionesDesde,
+    DateTime? PeriodoVacacionesHasta,
+    string? QuienReemplaza,
+    int? TipoContratoNuevoId,
+    string? TipoContratoNuevo,
+    DateTime? FechaInicioContrato,
+    DateTime? FechaFinContrato,
+    bool? EsReemplazo,
+    bool? EsPosicionNueva,
+    decimal? SalarioNuevo,
+    decimal? ViaticosNuevo,
+    decimal? GastosRepresentacionNuevo,
+    string? OtrosBeneficios,
+    decimal? SalarioAnterior,
+    decimal? SalarioNuevoAjuste,
+    decimal? AjustePorMes,
+    string? MotivoAjuste,
+    int? CargoNuevoId,
+    string? CargoNuevo,
+    int? DepartamentoNuevoId,
+    string? DepartamentoNuevo,
+    int? EmpresaNuevaId,
+    string? EmpresaNueva,
+    int? JefeNuevoId,
+    string? JefeNuevo,
+    int? CargoTrasladoActualId,
+    string? CargoTrasladoActual,
+    int? CargoTrasladoNuevoId,
+    string? CargoTrasladoNuevo,
+    int? DepartamentoTrasladoActualId,
+    string? DepartamentoTrasladoActual,
+    int? DepartamentoTrasladoNuevoId,
+    string? DepartamentoTrasladoNuevo,
+    int? EmpresaTrasladoActualId,
+    string? EmpresaTrasladoActual,
+    int? EmpresaTrasladoNuevaId,
+    string? EmpresaTrasladoNueva,
+    int? JefeTrasladoNuevoId,
+    string? JefeTrasladoNuevo,
+    string? TipoLicenciaAccion,
+    bool? LicenciaRemunerada,
+    DateTime? FechaInicioLicencia,
+    DateTime? FechaFinLicencia,
+    string? EspecificacionLicencia,
+    string? TipoFinalizacion,
+    DateTime? FechaSalida,
+    int? MotivoSalidaId,
+    string? MotivoSalida,
+    bool? MenosDeDosAnios,
+    bool? TerminacionPeriodoPrueba,
+    bool? CausaJustificada,
+    bool? MutuoAcuerdo,
+    bool? RenovacionExtensionContrato,
+    bool? ContinuidadLaboral,
+    bool? LoRecomienda,
+    string? Puntualidad,
+    string? Honestidad,
+    string? TrabajoEquipo,
+    string? Productividad,
+    string? Iniciativa,
+    string? RespetoJefe,
+    string? RespetoCompaneros,
+    bool Ejecutada,
+    DateTime? FechaEjecucion,
+    int? EjecutadaPorUsuarioId,
+    string? EjecutadaPorUsuario,
+    string? ResultadoEjecucion,
+    string? ErrorEjecucion,
+    IReadOnlyList<AccionPersonalCambioAplicadoDto> CambiosAplicados);
+
+public sealed record AccionPersonalCambioAplicadoDto(
+    int AccionPersonalCambioAplicadoId,
+    string Campo,
+    string? ValorAnterior,
+    string? ValorNuevo,
+    DateTime Fecha,
+    int UsuarioId,
+    string Usuario);
 
 public sealed record SolicitudAprobacionDto(
     int SolicitudAprobacionId,
@@ -313,6 +425,50 @@ public sealed record ColaboradorLookupDto(
     string Cargo,
     string Estatus);
 
+public sealed record ColaboradorSelectDto(
+    int ColaboradorId,
+    string NoEmpleado,
+    string NombreCompleto,
+    string Cedula,
+    int EmpresaId,
+    string Empresa,
+    int DepartamentoId,
+    string Departamento,
+    int CargoId,
+    string Cargo,
+    int? JefeInmediatoId,
+    string? JefeInmediato,
+    int TipoContratoId,
+    string TipoContrato,
+    int EstatusId,
+    string Estatus,
+    string EstatusCodigo,
+    decimal? SalarioActual,
+    decimal? ViaticosActual,
+    decimal? GastosRepresentacionActual);
+
+public sealed record ColaboradorResumenLaboralDto(
+    int ColaboradorId,
+    string NoEmpleado,
+    string NombreCompleto,
+    string Cedula,
+    int EmpresaId,
+    string Empresa,
+    int DepartamentoId,
+    string Departamento,
+    int CargoId,
+    string Cargo,
+    int? JefeInmediatoId,
+    string? JefeInmediato,
+    int TipoContratoId,
+    string TipoContrato,
+    int EstatusId,
+    string Estatus,
+    string EstatusCodigo,
+    decimal? SalarioActual,
+    decimal? ViaticosActual,
+    decimal? GastosRepresentacionActual);
+
 public sealed record OrganigramaHistorialCambioDto(
     int OrganigramaHistorialCambioId,
     string Entidad,
@@ -389,6 +545,91 @@ public sealed class CreateRequisicionPersonalRequest : RequisicionPersonalReques
 
 public sealed class UpdateRequisicionPersonalRequest : RequisicionPersonalRequestBase
 {
+}
+
+public class AccionPersonalRequestBase
+{
+    public string TipoAccion { get; set; } = string.Empty;
+    public int? ColaboradorId { get; set; }
+    public int? EmpresaId { get; set; }
+    public int? DepartamentoId { get; set; }
+    public int? CargoId { get; set; }
+    public DateTime? FechaEfectiva { get; set; }
+    public string? Justificacion { get; set; }
+    public string? Observaciones { get; set; }
+    public int? LiderAprobadorUsuarioId { get; set; }
+    public int? LiderAprobadorColaboradorId { get; set; }
+    public int? DepartamentoResponsableId { get; set; }
+
+    public int? DiasVacaciones { get; set; }
+    public DateTime? FechaInicioVacaciones { get; set; }
+    public DateTime? FechaFinVacaciones { get; set; }
+    public DateTime? PeriodoVacacionesDesde { get; set; }
+    public DateTime? PeriodoVacacionesHasta { get; set; }
+    public string? QuienReemplaza { get; set; }
+
+    public int? TipoContratoNuevoId { get; set; }
+    public DateTime? FechaInicioContrato { get; set; }
+    public DateTime? FechaFinContrato { get; set; }
+    public bool? EsReemplazo { get; set; }
+    public bool? EsPosicionNueva { get; set; }
+    public decimal? SalarioNuevo { get; set; }
+    public decimal? ViaticosNuevo { get; set; }
+    public decimal? GastosRepresentacionNuevo { get; set; }
+    public string? OtrosBeneficios { get; set; }
+
+    public decimal? SalarioNuevoAjuste { get; set; }
+    public decimal? AjustePorMes { get; set; }
+    public string? MotivoAjuste { get; set; }
+
+    public int? CargoNuevoId { get; set; }
+    public int? DepartamentoNuevoId { get; set; }
+    public int? EmpresaNuevaId { get; set; }
+    public int? JefeNuevoId { get; set; }
+
+    public int? CargoTrasladoNuevoId { get; set; }
+    public int? DepartamentoTrasladoNuevoId { get; set; }
+    public int? EmpresaTrasladoNuevaId { get; set; }
+    public int? JefeTrasladoNuevoId { get; set; }
+
+    public string? TipoLicenciaAccion { get; set; }
+    public bool? LicenciaRemunerada { get; set; }
+    public DateTime? FechaInicioLicencia { get; set; }
+    public DateTime? FechaFinLicencia { get; set; }
+    public string? EspecificacionLicencia { get; set; }
+
+    public string? TipoFinalizacion { get; set; }
+    public DateTime? FechaSalida { get; set; }
+    public int? MotivoSalidaId { get; set; }
+    public bool? MenosDeDosAnios { get; set; }
+    public bool? TerminacionPeriodoPrueba { get; set; }
+    public bool? CausaJustificada { get; set; }
+    public bool? MutuoAcuerdo { get; set; }
+    public bool? RenovacionExtensionContrato { get; set; }
+    public bool? ContinuidadLaboral { get; set; }
+    public bool? LoRecomienda { get; set; }
+
+    public string? Puntualidad { get; set; }
+    public string? Honestidad { get; set; }
+    public string? TrabajoEquipo { get; set; }
+    public string? Productividad { get; set; }
+    public string? Iniciativa { get; set; }
+    public string? RespetoJefe { get; set; }
+    public string? RespetoCompaneros { get; set; }
+}
+
+public sealed class CreateAccionPersonalRequest : AccionPersonalRequestBase
+{
+    public bool Enviar { get; set; }
+}
+
+public sealed class UpdateAccionPersonalRequest : AccionPersonalRequestBase
+{
+}
+
+public sealed class EjecutarAccionPersonalRequest
+{
+    public string? Comentario { get; set; }
 }
 
 public sealed class EnviarSolicitudRequest

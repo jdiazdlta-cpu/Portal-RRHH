@@ -42,9 +42,14 @@ public sealed class CatalogosController(AppDbContext db) : ControllerBase
     }
 
     [HttpGet("cargos")]
-    public async Task<IActionResult> Cargos([FromQuery] int? departamentoId, CancellationToken cancellationToken)
+    public async Task<IActionResult> Cargos([FromQuery] int? empresaId, [FromQuery] int? departamentoId, CancellationToken cancellationToken)
     {
-        var query = db.Cargos.Where(x => x.IsActive);
+        var query = db.Cargos.Include(x => x.Departamento).Where(x => x.IsActive);
+        if (empresaId.HasValue)
+        {
+            query = query.Where(x => x.Departamento.EmpresaId == empresaId.Value);
+        }
+
         if (departamentoId.HasValue)
         {
             query = query.Where(x => x.DepartamentoId == departamentoId.Value);

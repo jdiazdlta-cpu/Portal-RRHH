@@ -21,6 +21,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<HistorialColaborador> HistorialColaborador => Set<HistorialColaborador>();
     public DbSet<Solicitud> Solicitudes => Set<Solicitud>();
     public DbSet<RequisicionPersonal> RequisicionesPersonal => Set<RequisicionPersonal>();
+    public DbSet<AccionPersonal> AccionesPersonal => Set<AccionPersonal>();
+    public DbSet<AccionPersonalCambioAplicado> AccionPersonalCambiosAplicados => Set<AccionPersonalCambioAplicado>();
     public DbSet<SolicitudAprobacion> SolicitudAprobaciones => Set<SolicitudAprobacion>();
     public DbSet<SolicitudHistorial> SolicitudHistorial => Set<SolicitudHistorial>();
     public DbSet<Organigrama> Organigramas => Set<Organigrama>();
@@ -262,6 +264,79 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             entity.HasOne(x => x.DepartamentoSolicitado).WithMany().HasForeignKey(x => x.DepartamentoSolicitadoId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(x => x.ColaboradorReemplazado).WithMany().HasForeignKey(x => x.ColaboradorReemplazadoId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(x => x.TipoContrato).WithMany().HasForeignKey(x => x.TipoContratoId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<AccionPersonal>(entity =>
+        {
+            entity.ToTable("AccionesPersonal");
+            entity.HasKey(x => x.AccionPersonalId);
+            entity.Property(x => x.TipoAccion).HasConversion<string>().HasMaxLength(80).IsRequired();
+            entity.Property(x => x.Justificacion).HasMaxLength(2000).IsRequired();
+            entity.Property(x => x.Observaciones).HasMaxLength(2000);
+            entity.Property(x => x.NombreColaboradorSnapshot).HasMaxLength(220);
+            entity.Property(x => x.NoEmpleadoSnapshot).HasMaxLength(50);
+            entity.Property(x => x.CedulaSnapshot).HasMaxLength(50);
+            entity.Property(x => x.SalarioActual).HasColumnType("decimal(18,2)");
+            entity.Property(x => x.ViaticosActual).HasColumnType("decimal(18,2)");
+            entity.Property(x => x.GastosRepresentacionActual).HasColumnType("decimal(18,2)");
+            entity.Property(x => x.QuienReemplaza).HasMaxLength(180);
+            entity.Property(x => x.SalarioNuevo).HasColumnType("decimal(18,2)");
+            entity.Property(x => x.ViaticosNuevo).HasColumnType("decimal(18,2)");
+            entity.Property(x => x.GastosRepresentacionNuevo).HasColumnType("decimal(18,2)");
+            entity.Property(x => x.OtrosBeneficios).HasMaxLength(1000);
+            entity.Property(x => x.SalarioAnterior).HasColumnType("decimal(18,2)");
+            entity.Property(x => x.SalarioNuevoAjuste).HasColumnType("decimal(18,2)");
+            entity.Property(x => x.AjustePorMes).HasColumnType("decimal(18,2)");
+            entity.Property(x => x.MotivoAjuste).HasMaxLength(1000);
+            entity.Property(x => x.TipoLicenciaAccion).HasMaxLength(120);
+            entity.Property(x => x.EspecificacionLicencia).HasMaxLength(1000);
+            entity.Property(x => x.TipoFinalizacion).HasMaxLength(120);
+            entity.Property(x => x.Puntualidad).HasMaxLength(20);
+            entity.Property(x => x.Honestidad).HasMaxLength(20);
+            entity.Property(x => x.TrabajoEquipo).HasMaxLength(20);
+            entity.Property(x => x.Productividad).HasMaxLength(20);
+            entity.Property(x => x.Iniciativa).HasMaxLength(20);
+            entity.Property(x => x.RespetoJefe).HasMaxLength(20);
+            entity.Property(x => x.RespetoCompaneros).HasMaxLength(20);
+            entity.Property(x => x.ResultadoEjecucion).HasMaxLength(2000);
+            entity.Property(x => x.ErrorEjecucion).HasMaxLength(2000);
+            entity.HasIndex(x => x.SolicitudId).IsUnique();
+            entity.HasIndex(x => new { x.TipoAccion, x.Ejecutada });
+            entity.HasIndex(x => x.ColaboradorId);
+            entity.HasOne(x => x.Solicitud).WithOne(x => x.AccionPersonal).HasForeignKey<AccionPersonal>(x => x.SolicitudId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.Colaborador).WithMany().HasForeignKey(x => x.ColaboradorId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.EmpresaActual).WithMany().HasForeignKey(x => x.EmpresaActualId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.DepartamentoActual).WithMany().HasForeignKey(x => x.DepartamentoActualId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.CargoActual).WithMany().HasForeignKey(x => x.CargoActualId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.JefeActual).WithMany().HasForeignKey(x => x.JefeActualId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.TipoContratoActual).WithMany().HasForeignKey(x => x.TipoContratoActualId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.EstatusActual).WithMany().HasForeignKey(x => x.EstatusActualId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.TipoContratoNuevo).WithMany().HasForeignKey(x => x.TipoContratoNuevoId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.CargoNuevo).WithMany().HasForeignKey(x => x.CargoNuevoId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.DepartamentoNuevo).WithMany().HasForeignKey(x => x.DepartamentoNuevoId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.EmpresaNueva).WithMany().HasForeignKey(x => x.EmpresaNuevaId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.JefeNuevo).WithMany().HasForeignKey(x => x.JefeNuevoId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.CargoTrasladoActual).WithMany().HasForeignKey(x => x.CargoTrasladoActualId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.CargoTrasladoNuevo).WithMany().HasForeignKey(x => x.CargoTrasladoNuevoId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.DepartamentoTrasladoActual).WithMany().HasForeignKey(x => x.DepartamentoTrasladoActualId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.DepartamentoTrasladoNuevo).WithMany().HasForeignKey(x => x.DepartamentoTrasladoNuevoId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.EmpresaTrasladoActual).WithMany().HasForeignKey(x => x.EmpresaTrasladoActualId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.EmpresaTrasladoNueva).WithMany().HasForeignKey(x => x.EmpresaTrasladoNuevaId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.JefeTrasladoNuevo).WithMany().HasForeignKey(x => x.JefeTrasladoNuevoId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.MotivoSalida).WithMany().HasForeignKey(x => x.MotivoSalidaId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.EjecutadaPorUsuario).WithMany().HasForeignKey(x => x.EjecutadaPorUsuarioId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<AccionPersonalCambioAplicado>(entity =>
+        {
+            entity.ToTable("AccionPersonalCambiosAplicados");
+            entity.HasKey(x => x.AccionPersonalCambioAplicadoId);
+            entity.Property(x => x.Campo).HasMaxLength(120).IsRequired();
+            entity.Property(x => x.ValorAnterior).HasMaxLength(1000);
+            entity.Property(x => x.ValorNuevo).HasMaxLength(1000);
+            entity.HasIndex(x => new { x.AccionPersonalId, x.Fecha });
+            entity.HasOne(x => x.AccionPersonal).WithMany(x => x.CambiosAplicados).HasForeignKey(x => x.AccionPersonalId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.Usuario).WithMany().HasForeignKey(x => x.UsuarioId).OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<SolicitudAprobacion>(entity =>

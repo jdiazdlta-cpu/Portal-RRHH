@@ -209,6 +209,7 @@ public sealed class Solicitud : BaseEntity
     public Departamento? Departamento { get; set; }
     public Cargo? Cargo { get; set; }
     public RequisicionPersonal? RequisicionPersonal { get; set; }
+    public AccionPersonal? AccionPersonal { get; set; }
     public ICollection<SolicitudAprobacion> Aprobaciones { get; set; } = new List<SolicitudAprobacion>();
     public ICollection<SolicitudHistorial> Historial { get; set; } = new List<SolicitudHistorial>();
 }
@@ -258,6 +259,134 @@ public sealed class RequisicionPersonal : BaseEntity
     public Departamento? DepartamentoSolicitado { get; set; }
     public Colaborador? ColaboradorReemplazado { get; set; }
     public TipoContrato? TipoContrato { get; set; }
+}
+
+public sealed class AccionPersonal : BaseEntity
+{
+    public int AccionPersonalId { get; set; }
+    public int SolicitudId { get; set; }
+    public TipoAccionPersonal TipoAccion { get; set; }
+    public int? ColaboradorId { get; set; }
+    public DateTime FechaEfectiva { get; set; }
+    public string Justificacion { get; set; } = string.Empty;
+    public string? Observaciones { get; set; }
+
+    public string? NombreColaboradorSnapshot { get; set; }
+    public string? NoEmpleadoSnapshot { get; set; }
+    public string? CedulaSnapshot { get; set; }
+    public int? EmpresaActualId { get; set; }
+    public int? DepartamentoActualId { get; set; }
+    public int? CargoActualId { get; set; }
+    public int? JefeActualId { get; set; }
+    public int? TipoContratoActualId { get; set; }
+    public int? EstatusActualId { get; set; }
+    public decimal? SalarioActual { get; set; }
+    public decimal? ViaticosActual { get; set; }
+    public decimal? GastosRepresentacionActual { get; set; }
+
+    public int? DiasVacaciones { get; set; }
+    public DateTime? FechaInicioVacaciones { get; set; }
+    public DateTime? FechaFinVacaciones { get; set; }
+    public DateTime? PeriodoVacacionesDesde { get; set; }
+    public DateTime? PeriodoVacacionesHasta { get; set; }
+    public string? QuienReemplaza { get; set; }
+
+    public int? TipoContratoNuevoId { get; set; }
+    public DateTime? FechaInicioContrato { get; set; }
+    public DateTime? FechaFinContrato { get; set; }
+    public bool? EsReemplazo { get; set; }
+    public bool? EsPosicionNueva { get; set; }
+    public decimal? SalarioNuevo { get; set; }
+    public decimal? ViaticosNuevo { get; set; }
+    public decimal? GastosRepresentacionNuevo { get; set; }
+    public string? OtrosBeneficios { get; set; }
+
+    public decimal? SalarioAnterior { get; set; }
+    public decimal? SalarioNuevoAjuste { get; set; }
+    public decimal? AjustePorMes { get; set; }
+    public string? MotivoAjuste { get; set; }
+
+    public int? CargoNuevoId { get; set; }
+    public int? DepartamentoNuevoId { get; set; }
+    public int? EmpresaNuevaId { get; set; }
+    public int? JefeNuevoId { get; set; }
+
+    public int? CargoTrasladoActualId { get; set; }
+    public int? CargoTrasladoNuevoId { get; set; }
+    public int? DepartamentoTrasladoActualId { get; set; }
+    public int? DepartamentoTrasladoNuevoId { get; set; }
+    public int? EmpresaTrasladoActualId { get; set; }
+    public int? EmpresaTrasladoNuevaId { get; set; }
+    public int? JefeTrasladoNuevoId { get; set; }
+
+    public string? TipoLicenciaAccion { get; set; }
+    public bool? LicenciaRemunerada { get; set; }
+    public DateTime? FechaInicioLicencia { get; set; }
+    public DateTime? FechaFinLicencia { get; set; }
+    public string? EspecificacionLicencia { get; set; }
+
+    public string? TipoFinalizacion { get; set; }
+    public DateTime? FechaSalida { get; set; }
+    public int? MotivoSalidaId { get; set; }
+    public bool? MenosDeDosAnios { get; set; }
+    public bool? TerminacionPeriodoPrueba { get; set; }
+    public bool? CausaJustificada { get; set; }
+    public bool? MutuoAcuerdo { get; set; }
+    public bool? RenovacionExtensionContrato { get; set; }
+    public bool? ContinuidadLaboral { get; set; }
+    public bool? LoRecomienda { get; set; }
+
+    public string? Puntualidad { get; set; }
+    public string? Honestidad { get; set; }
+    public string? TrabajoEquipo { get; set; }
+    public string? Productividad { get; set; }
+    public string? Iniciativa { get; set; }
+    public string? RespetoJefe { get; set; }
+    public string? RespetoCompaneros { get; set; }
+
+    public bool Ejecutada { get; set; }
+    public DateTime? FechaEjecucion { get; set; }
+    public int? EjecutadaPorUsuarioId { get; set; }
+    public string? ResultadoEjecucion { get; set; }
+    public string? ErrorEjecucion { get; set; }
+
+    public Solicitud Solicitud { get; set; } = null!;
+    public Colaborador? Colaborador { get; set; }
+    public Empresa? EmpresaActual { get; set; }
+    public Departamento? DepartamentoActual { get; set; }
+    public Cargo? CargoActual { get; set; }
+    public Colaborador? JefeActual { get; set; }
+    public TipoContrato? TipoContratoActual { get; set; }
+    public EstatusColaborador? EstatusActual { get; set; }
+    public TipoContrato? TipoContratoNuevo { get; set; }
+    public Cargo? CargoNuevo { get; set; }
+    public Departamento? DepartamentoNuevo { get; set; }
+    public Empresa? EmpresaNueva { get; set; }
+    public Colaborador? JefeNuevo { get; set; }
+    public Cargo? CargoTrasladoActual { get; set; }
+    public Cargo? CargoTrasladoNuevo { get; set; }
+    public Departamento? DepartamentoTrasladoActual { get; set; }
+    public Departamento? DepartamentoTrasladoNuevo { get; set; }
+    public Empresa? EmpresaTrasladoActual { get; set; }
+    public Empresa? EmpresaTrasladoNueva { get; set; }
+    public Colaborador? JefeTrasladoNuevo { get; set; }
+    public MotivoSalida? MotivoSalida { get; set; }
+    public Usuario? EjecutadaPorUsuario { get; set; }
+    public ICollection<AccionPersonalCambioAplicado> CambiosAplicados { get; set; } = new List<AccionPersonalCambioAplicado>();
+}
+
+public sealed class AccionPersonalCambioAplicado : BaseEntity
+{
+    public int AccionPersonalCambioAplicadoId { get; set; }
+    public int AccionPersonalId { get; set; }
+    public string Campo { get; set; } = string.Empty;
+    public string? ValorAnterior { get; set; }
+    public string? ValorNuevo { get; set; }
+    public DateTime Fecha { get; set; } = DateTime.UtcNow;
+    public int UsuarioId { get; set; }
+
+    public AccionPersonal AccionPersonal { get; set; } = null!;
+    public Usuario Usuario { get; set; } = null!;
 }
 
 public sealed class SolicitudAprobacion : BaseEntity
