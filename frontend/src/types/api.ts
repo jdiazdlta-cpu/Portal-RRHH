@@ -332,6 +332,39 @@ export type SolicitudList = {
   accionesDisponibles: string[];
 };
 
+export type DashboardSolicitudItem = {
+  id: number;
+  codigoSolicitud: string;
+  tipoSolicitud: string;
+  estado: string;
+  solicitante: string;
+  empresa?: string | null;
+  departamento?: string | null;
+  fechaSolicitud: string;
+  updatedAt?: string | null;
+  pendienteDe?: string | null;
+  urlDetalle: string;
+};
+
+export type DashboardSolicitudesResumen = {
+  totalSolicitudesAbiertas: number;
+  pendientesAprobacionLider: number;
+  pendientesRevisionRRHH: number;
+  devueltas: number;
+  rechazadasMes: number;
+  aprobadasMes: number;
+  ejecutadasMes: number;
+  accionesPersonalAprobadasPendientesEjecucion: number;
+  solicitudesDesdeAlertas: number;
+  requisicionesAbiertas: number;
+  accionesPersonalAbiertas: number;
+  solicitudesPorTipo: ChartItem[];
+  solicitudesPorEstado: ChartItem[];
+  solicitudesRecientes: DashboardSolicitudItem[];
+  pendientesMiAccion: DashboardSolicitudItem[];
+  accionesPersonalPendientesEjecucion: DashboardSolicitudItem[];
+};
+
 export type RequisicionPersonal = {
   requisicionPersonalId: number;
   solicitudId: number;
@@ -813,6 +846,56 @@ export type DepartamentoResponsableRequest = {
   fechaFin?: string | null;
   observacion?: string | null;
   isActive: boolean;
+};
+
+export type QaInventoryItem = {
+  tipoEntidad: string;
+  id: number;
+  codigo?: string | null;
+  nombre?: string | null;
+  estado?: string | null;
+  isActive?: boolean | null;
+  createdAt?: string | null;
+  createdBy?: string | null;
+  motivoDeteccion: string;
+  puedeBorrarseSeguro: boolean;
+  riesgo: string;
+  esProtegido: boolean;
+  motivoProteccion?: string | null;
+};
+
+export type QaInventory = {
+  solicitudes: QaInventoryItem[];
+  requisiciones: QaInventoryItem[];
+  accionesPersonal: QaInventoryItem[];
+  organigramas: QaInventoryItem[];
+  nodos: QaInventoryItem[];
+  responsables: QaInventoryItem[];
+  alertasRelacionadas: QaInventoryItem[];
+  totalDetectado: number;
+  generadoEn: string;
+};
+
+export type QaCleanupRequest = {
+  confirmar: boolean;
+  solicitudIds: number[];
+  organigramaIds: number[];
+  nodoIds: number[];
+  responsableIds: number[];
+};
+
+export type QaCleanupResult = {
+  solicitudesBorradas: number;
+  requisicionesBorradas: number;
+  accionesPersonalBorradas: number;
+  accionPersonalCambiosBorrados: number;
+  aprobacionesBorradas: number;
+  historialSolicitudesBorrado: number;
+  organigramasBorrados: number;
+  nodosBorrados: number;
+  responsablesBorrados: number;
+  historialOrganigramaBorrado: number;
+  advertencias: string[];
 };
 
 export type CrearAccionPersonalDesdeAlertaRequest = {

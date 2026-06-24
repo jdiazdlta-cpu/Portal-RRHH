@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import { AlertTriangle, BriefcaseBusiness, Building2, CalendarClock, FileClock, UserCheck, Users } from 'lucide-react';
+import { AlertTriangle, BriefcaseBusiness, Building2, CalendarClock, ClipboardList, FileClock, UserCheck, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { apiGet } from '../api/client';
 import type {
@@ -10,6 +10,8 @@ import type {
   ChartItem,
   ColaboradorList,
   DashboardResumen,
+  DashboardSolicitudItem,
+  DashboardSolicitudesResumen,
   Movimiento,
   RecordatorioDocumento
 } from '../types/api';
@@ -43,6 +45,7 @@ const months = [
 export function DashboardPage() {
   const currentYear = new Date().getFullYear();
   const [resumen, setResumen] = useState<DashboardResumen | null>(null);
+  const [solicitudesResumen, setSolicitudesResumen] = useState<DashboardSolicitudesResumen | null>(null);
   const [empresasCatalogo, setEmpresasCatalogo] = useState<CatalogoItem[]>([]);
   const [estatusCatalogo, setEstatusCatalogo] = useState<CatalogoItem[]>([]);
   const [empresaId, setEmpresaId] = useState('');
@@ -97,10 +100,11 @@ export function DashboardPage() {
       apiGet<Alerta[]>(withQuery('/dashboard/vencimientos', vencimientoParams)),
       apiGet<Movimiento[]>(withQuery('/dashboard/ultimos-movimientos', baseParams)),
       apiGet<RecordatorioDocumento[]>(withQuery('/dashboard/recordatorios-documentos', vencimientoParams)),
+      apiGet<DashboardSolicitudesResumen>('/dashboard/solicitudes-resumen'),
       month ? apiGet<ColaboradorList[]>(withQuery('/dashboard/altas-detalle', periodParams)) : Promise.resolve([]),
       month ? apiGet<ColaboradorList[]>(withQuery('/dashboard/bajas-detalle', periodParams)) : Promise.resolve([])
     ])
-      .then(([summary, byCompany, byContract, byDepartment, hires, expirations, moves, reminders, hiresDetail, exitsDetail]) => {
+      .then(([summary, byCompany, byContract, byDepartment, hires, expirations, moves, reminders, requestsSummary, hiresDetail, exitsDetail]) => {
         setResumen(summary);
         setEmpresas(byCompany);
         setTiposContrato(byContract);
@@ -109,6 +113,7 @@ export function DashboardPage() {
         setVencimientos(expirations);
         setMovimientos(moves);
         setRecordatorios(reminders);
+        setSolicitudesResumen(requestsSummary);
         setAltasDetalle(hiresDetail);
         setBajasDetalle(exitsDetail);
       })
@@ -139,6 +144,8 @@ export function DashboardPage() {
         <Metric to="/alertas" icon={<AlertTriangle size={22} />} label="Alertas" value={resumen?.alertasActivas ?? 0} />
         <Metric to="/alertas" icon={<CalendarClock size={22} />} label="Vencimientos" value={resumen?.vencimientos ?? 0} />
       </div>
+
+      <SolicitudesDashboard resumen={solicitudesResumen} />
 
       <form className="dashboard-filters">
         <label>
@@ -304,6 +311,94 @@ export function DashboardPage() {
         </section>
       </div>
     </section>
+  );
+}
+
+function SolicitudesDashboard({ resumen }: { resumen: DashboardSolicitudesResumen | null }) {
+  const mainItems = resumen?.pendientesMiAccion.length ? resumen.pendientesMiAccion : resumen?.solicitudesRecientes ?? [];
+  const title = resumen?.pendientesMiAccion.length ? 'Pendientes de mi accion' : 'Solicitudes recientes';
+
+  return (
+    <section className="panel solicitudes-dashboard-panel">
+      <div className="panel-title-row">
+        <div>
+          <h2>Solicitudes y Acciones Pendientes</h2>
+          <p className="muted-text">Resumen operativo de solicitudes activas</p>
+        </div>
+        <Link className="secondary-button" to="/solicitudes">
+          <ClipboardList size={18} />
+          Ver solicitudes
+        </Link>
+      </div>
+      <div className="solicitudes-kpi-grid">
+        <RequestKpi label="Pendientes lider" value={resumen?.pendientesAprobacionLider ?? 0} />
+        <RequestKpi label="Pendientes RRHH" value={resumen?.pendientesRevisionRRHH ?? 0} />
+        <RequestKpi label="Devueltas" value={resumen?.devueltas ?? 0} />
+        <RequestKpi label="AP por ejecutar" value={resumen?.accionesPersonalAprobadasPendientesEjecucion ?? 0} />
+        <RequestKpi label="Desde alertas" value={resumen?.solicitudesDesdeAlertas ?? 0} />
+      </div>
+      <div className="request-dashboard-columns">
+        <SolicitudMiniTable title={title} items={mainItems} />
+        <div className="request-distribution">
+          <strong>Solicitudes por estado</strong>
+          {(resumen?.solicitudesPorEstado.length ?? 0) === 0 && <EmptyState />}
+          {resumen?.solicitudesPorEstado.slice(0, 6).map((item) => (
+            <div key={item.label}>
+              <span>{item.label}</span>
+              <strong>{item.value}</strong>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function RequestKpi({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="request-kpi">
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </div>
+  );
+}
+
+function SolicitudMiniTable({ title, items }: { title: string; items: DashboardSolicitudItem[] }) {
+  return (
+    <div className="request-mini-table">
+      <div className="panel-title-row compact">
+        <strong>{title}</strong>
+      </div>
+      <div className="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Codigo</th>
+              <th>Tipo</th>
+              <th>Estado</th>
+              <th>Pendiente de</th>
+              <th>Fecha</th>
+              <th>Accion</th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.length === 0 && (
+              <tr><td colSpan={6}><div className="empty-state">No hay solicitudes pendientes.</div></td></tr>
+            )}
+            {items.map((item) => (
+              <tr key={item.id}>
+                <td>{item.codigoSolicitud}</td>
+                <td>{item.tipoSolicitud}</td>
+                <td>{item.estado}</td>
+                <td>{item.pendienteDe ?? 'N/D'}</td>
+                <td>{formatDate(item.updatedAt ?? item.fechaSolicitud)}</td>
+                <td><Link className="inline-link" to="/solicitudes">Ver detalle</Link></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 }
 

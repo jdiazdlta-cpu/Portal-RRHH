@@ -142,6 +142,37 @@ public sealed record SolicitudListDto(
     string? PendienteDe,
     IReadOnlyList<string> AccionesDisponibles);
 
+public sealed record DashboardSolicitudesResumenDto(
+    int TotalSolicitudesAbiertas,
+    int PendientesAprobacionLider,
+    int PendientesRevisionRRHH,
+    int Devueltas,
+    int RechazadasMes,
+    int AprobadasMes,
+    int EjecutadasMes,
+    int AccionesPersonalAprobadasPendientesEjecucion,
+    int SolicitudesDesdeAlertas,
+    int RequisicionesAbiertas,
+    int AccionesPersonalAbiertas,
+    IReadOnlyList<ChartItemDto> SolicitudesPorTipo,
+    IReadOnlyList<ChartItemDto> SolicitudesPorEstado,
+    IReadOnlyList<DashboardSolicitudItemDto> SolicitudesRecientes,
+    IReadOnlyList<DashboardSolicitudItemDto> PendientesMiAccion,
+    IReadOnlyList<DashboardSolicitudItemDto> AccionesPersonalPendientesEjecucion);
+
+public sealed record DashboardSolicitudItemDto(
+    int Id,
+    string CodigoSolicitud,
+    string TipoSolicitud,
+    string Estado,
+    string Solicitante,
+    string? Empresa,
+    string? Departamento,
+    DateTime FechaSolicitud,
+    DateTime? UpdatedAt,
+    string? PendienteDe,
+    string UrlDetalle);
+
 public sealed record SolicitudDetailDto(
     int SolicitudId,
     string CodigoSolicitud,
@@ -730,6 +761,54 @@ public sealed record AccionPersonalDesdeAlertaResultDto(
     string CodigoSolicitud,
     int AccionPersonalId,
     int AlertaOrigenId);
+
+public sealed record QaInventoryItemDto(
+    string TipoEntidad,
+    int Id,
+    string? Codigo,
+    string? Nombre,
+    string? Estado,
+    bool? IsActive,
+    DateTime? CreatedAt,
+    string? CreatedBy,
+    string MotivoDeteccion,
+    bool PuedeBorrarseSeguro,
+    string Riesgo,
+    bool EsProtegido = false,
+    string? MotivoProteccion = null);
+
+public sealed record QaInventoryDto(
+    IReadOnlyList<QaInventoryItemDto> Solicitudes,
+    IReadOnlyList<QaInventoryItemDto> Requisiciones,
+    IReadOnlyList<QaInventoryItemDto> AccionesPersonal,
+    IReadOnlyList<QaInventoryItemDto> Organigramas,
+    IReadOnlyList<QaInventoryItemDto> Nodos,
+    IReadOnlyList<QaInventoryItemDto> Responsables,
+    IReadOnlyList<QaInventoryItemDto> AlertasRelacionadas,
+    int TotalDetectado,
+    DateTime GeneradoEn);
+
+public sealed class QaCleanupRequest
+{
+    public bool Confirmar { get; set; }
+    public List<int> SolicitudIds { get; set; } = new();
+    public List<int> OrganigramaIds { get; set; } = new();
+    public List<int> NodoIds { get; set; } = new();
+    public List<int> ResponsableIds { get; set; } = new();
+}
+
+public sealed record QaCleanupResultDto(
+    int SolicitudesBorradas,
+    int RequisicionesBorradas,
+    int AccionesPersonalBorradas,
+    int AccionPersonalCambiosBorrados,
+    int AprobacionesBorradas,
+    int HistorialSolicitudesBorrado,
+    int OrganigramasBorrados,
+    int NodosBorrados,
+    int ResponsablesBorrados,
+    int HistorialOrganigramaBorrado,
+    IReadOnlyList<string> Advertencias);
 
 public sealed record ColaboradorDetalleDto(
     int ColaboradorId,

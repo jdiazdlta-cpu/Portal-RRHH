@@ -146,6 +146,7 @@ export function SolicitudesPage() {
   const [accionDepartamentos, setAccionDepartamentos] = useState<CatalogoItem[]>([]);
   const [accionCargos, setAccionCargos] = useState<CatalogoItem[]>([]);
   const [accionColaboradores, setAccionColaboradores] = useState<ColaboradorSelect[]>([]);
+  const [accionColaboradorSearch, setAccionColaboradorSearch] = useState('');
   const [colaboradorActual, setColaboradorActual] = useState<ColaboradorResumenLaboral | null>(null);
   const [destinoDepartamentos, setDestinoDepartamentos] = useState<CatalogoItem[]>([]);
   const [destinoCargos, setDestinoCargos] = useState<CatalogoItem[]>([]);
@@ -274,10 +275,13 @@ export function SolicitudesPage() {
       soloActivos: 'true',
       take: '100'
     });
+    if (accionColaboradorSearch.trim()) {
+      params.set('search', accionColaboradorSearch.trim());
+    }
     apiGet<ColaboradorSelect[]>(`/colaboradores/select?${params}`)
       .then(setAccionColaboradores)
       .catch((err) => setFormError(err instanceof Error ? err.message : 'No se pudieron cargar colaboradores.'));
-  }, [accionForm?.cargoId, accionForm?.departamentoId, accionForm?.empresaId, accionForm?.tipoAccion]);
+  }, [accionColaboradorSearch, accionForm?.cargoId, accionForm?.departamentoId, accionForm?.empresaId, accionForm?.tipoAccion]);
 
   useEffect(() => {
     if (!accionForm?.colaboradorId) {
@@ -410,6 +414,7 @@ export function SolicitudesPage() {
     setFormError('');
     setNotice('');
     setError('');
+    setAccionColaboradorSearch('');
   }
 
   async function openDetail(id: number) {
@@ -450,6 +455,7 @@ export function SolicitudesPage() {
     setEditingId(current.solicitudId);
     setDetail(null);
     setFormError('');
+    setAccionColaboradorSearch('');
   }
 
   function closeForm() {
@@ -528,6 +534,7 @@ export function SolicitudesPage() {
       liderAprobadorUsuarioId: '',
       liderAprobadorColaboradorId: ''
     } : current);
+    setAccionColaboradorSearch('');
 
     if (value === 'ContratacionIngreso') {
       setColaboradorActual(null);
@@ -564,6 +571,7 @@ export function SolicitudesPage() {
     } : current);
     setAccionCargos([]);
     setAccionColaboradores([]);
+    setAccionColaboradorSearch('');
     setColaboradorActual(null);
   }
 
@@ -578,6 +586,7 @@ export function SolicitudesPage() {
       liderAprobadorColaboradorId: ''
     } : current);
     setAccionColaboradores([]);
+    setAccionColaboradorSearch('');
     setColaboradorActual(null);
   }
 
@@ -587,6 +596,7 @@ export function SolicitudesPage() {
       cargoId: value,
       colaboradorId: ''
     } : current);
+    setAccionColaboradorSearch('');
     setColaboradorActual(null);
   }
 
@@ -959,14 +969,17 @@ export function SolicitudesPage() {
                   <Select label="Departamento" value={accionForm.departamentoId} onChange={changeAccionDepartamento} options={accionDepartamentos} emptyText="Seleccione" />
                   <Select label={accionForm.tipoAccion === 'ContratacionIngreso' ? 'Cargo' : 'Cargo actual'} value={accionForm.cargoId} onChange={changeAccionCargo} options={accionCargos} emptyText="Seleccione" />
                   {requiresExistingCollaborator(accionForm.tipoAccion) ? (
-                    <Select
-                      label="Colaborador"
-                      value={accionForm.colaboradorId}
-                      onChange={changeAccionColaborador}
-                      options={accionColaboradores.map((item) => ({ id: item.colaboradorId, nombre: `${item.nombreCompleto} - ${item.noEmpleado} - ${item.cargo} - ${item.departamento} - ${item.empresa}` }))}
-                      emptyText="Seleccione colaborador"
-                      required
-                    />
+                    <>
+                      <TextField label="Buscar colaborador" value={accionColaboradorSearch} onChange={setAccionColaboradorSearch} />
+                      <Select
+                        label="Colaborador"
+                        value={accionForm.colaboradorId}
+                        onChange={changeAccionColaborador}
+                        options={accionColaboradores.map((item) => ({ id: item.colaboradorId, nombre: `${item.nombreCompleto} - ${item.noEmpleado} - ${item.cargo} - ${item.departamento} - ${item.empresa}` }))}
+                        emptyText="Seleccione colaborador"
+                        required
+                      />
+                    </>
                   ) : (
                     <div className="form-note span-2">Nuevo ingreso / sin colaborador existente.</div>
                   )}
