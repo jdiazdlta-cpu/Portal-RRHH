@@ -1,9 +1,19 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { Dispatch, FormEvent, SetStateAction } from 'react';
-import { Check, MoreVertical, RefreshCw, Save, X } from 'lucide-react';
+import { Check, MoreVertical, RefreshCw, Save, Send, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { apiGet, apiPatch, apiPost } from '../api/client';
-import type { Alerta, AlertaGestionCorreccion, CatalogoItem, ColaboradorDetalle, Documento } from '../types/api';
+import { useAuth } from '../auth/AuthContext';
+import type {
+  AccionPersonalDesdeAlertaResult,
+  Alerta,
+  AlertaGestionCorreccion,
+  AprobadorSolicitud,
+  CatalogoItem,
+  ColaboradorDetalle,
+  CrearAccionPersonalDesdeAlertaRequest,
+  Documento
+} from '../types/api';
 import { formatDate, statusClass } from '../utils/format';
 
 type ResumenAlertas = {
@@ -56,7 +66,20 @@ type GestionState = {
   observacionDocumento: string;
 };
 
+type AccionDesdeAlertaState = {
+  alerta: Alerta;
+  colaborador: ColaboradorDetalle;
+  aprobadores: AprobadorSolicitud[];
+  tipoAccion: string;
+  fechaEfectiva: string;
+  departamentoResponsableId: string;
+  justificacion: string;
+  observaciones: string;
+};
+
 export function AlertasPage() {
+  const { user } = useAuth();
+  const canCreateAccionPersonal = user?.rol === 'Admin' || user?.rol === 'RRHH';
   const [items, setItems] = useState<Alerta[]>([]);
   const [resumen, setResumen] = useState<ResumenAlertas | null>(null);
   const [estado, setEstado] = useState('');
@@ -69,6 +92,8 @@ export function AlertasPage() {
   const [busy, setBusy] = useState(false);
   const [modal, setModal] = useState<GestionState | null>(null);
   const [modalError, setModalError] = useState('');
+  const [accionModal, setAccionModal] = useState<AccionDesdeAlertaState | null>(null);
+  const [accionError, setAccionError] = useState('');
 
   const load = () => {
     const params = new URLSearchParams();
@@ -129,6 +154,23 @@ export function AlertasPage() {
     }
   }
 
+  async function openAccionModal(alerta: Alerta) {
+    setError('');
+    setNotice('');
+    setAccionError('');
+    try {
+      const colaborador = await apiGet<ColaboradorDetalle>(`/colaboradores/${alerta.colaboradorId}/perfil`);
+      const params = new URLSearchParams({
+        empresaId: String(colaborador.empresaId),
+        departamentoId: String(colaborador.departamentoId)
+      });
+      const aprobadores = await apiGet<AprobadorSolicitud[]>(`/organigrama/aprobadores?${params}`);
+      setAccionModal(toAccionDesdeAlertaState(alerta, colaborador, aprobadores));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo abrir la accion de personal desde alerta.');
+    }
+  }
+
   async function submitGestion(event: FormEvent) {
     event.preventDefault();
     if (!modal) return;
@@ -159,6 +201,46 @@ export function AlertasPage() {
       load();
     } catch (err) {
       setModalError(err instanceof Error ? err.message : 'No se pudo actualizar la alerta.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function submitAccionDesdeAlerta(event: FormEvent) {
+    event.preventDefault();
+    if (!accionModal) return;
+
+    if (!accionModal.tipoAccion) {
+      setAccionError('Debe seleccionar el tipo de accion.');
+      return;
+    }
+
+    if (!accionModal.fechaEfectiva) {
+      setAccionError('Debe indicar la fecha efectiva.');
+      return;
+    }
+
+    if (!accionModal.justificacion.trim()) {
+      setAccionError('La justificacion es obligatoria.');
+      return;
+    }
+
+    setBusy(true);
+    setAccionError('');
+    try {
+      const payload: CrearAccionPersonalDesdeAlertaRequest = {
+        tipoAccion: accionModal.tipoAccion,
+        fechaEfectiva: accionModal.fechaEfectiva,
+        justificacion: accionModal.justificacion.trim(),
+        departamentoResponsableId: optionalNumber(accionModal.departamentoResponsableId),
+        observaciones: optionalText(accionModal.observaciones)
+      };
+      const result = await apiPost<AccionPersonalDesdeAlertaResult>(`/alertas/${accionModal.alerta.alertaId}/crear-accion-personal`, payload);
+      setNotice(`Accion de personal ${result.codigoSolicitud} creada desde alerta.`);
+      setAccionModal(null);
+      load();
+    } catch (err) {
+      setAccionError(err instanceof Error ? err.message : 'No se pudo crear la accion de personal.');
     } finally {
       setBusy(false);
     }
@@ -233,6 +315,9 @@ export function AlertasPage() {
                     <div className="action-menu-popover">
                       <button type="button" onClick={() => openModal(item, 'gestionar')}><Check size={16} />Gestionar</button>
                       <button type="button" onClick={() => openModal(item, 'ignorar')}><X size={16} />Ignorar</button>
+                      {canCreateAccionPersonal && canCreateActionFromAlert(item) && (
+                        <button type="button" onClick={() => openAccionModal(item)}><Send size={16} />Crear Accion de Personal</button>
+                      )}
                     </div>
                   </details>
                 </td>
@@ -297,6 +382,71 @@ export function AlertasPage() {
                 <button className="primary-button" disabled={busy} type="submit">
                   <Save size={18} />
                   {busy ? 'Guardando...' : modal.mode === 'gestionar' ? 'Guardar gestion' : 'Ignorar alerta'}
+                </button>
+              </div>
+            </form>
+          </section>
+        </div>
+      )}
+
+      {accionModal && (
+        <div className="modal-backdrop" role="presentation">
+          <section className="modal-panel alerta-modal" role="dialog" aria-modal="true" aria-labelledby="accion-alerta-title">
+            <div className="modal-header">
+              <div>
+                <h2 id="accion-alerta-title">Crear Accion de Personal</h2>
+                <p>{accionModal.alerta.tipoAlerta} - {accionModal.alerta.colaborador}</p>
+              </div>
+              <button className="icon-button light" onClick={() => setAccionModal(null)} type="button" title="Cerrar" aria-label="Cerrar">
+                <X size={18} />
+              </button>
+            </div>
+            {accionError && <div className="error-box">{accionError}</div>}
+            <form className="edit-modal-form" onSubmit={submitAccionDesdeAlerta}>
+              <div className="alert-context">
+                <span><strong>Colaborador</strong>{accionModal.colaborador.nombreCompleto}</span>
+                <span><strong>Tipo alerta</strong>{accionModal.alerta.tipoAlerta}</span>
+                <span><strong>Vencimiento</strong>{formatDate(accionModal.alerta.fechaVencimiento)}</span>
+                <span><strong>Estado alerta</strong>{accionModal.alerta.estadoAlerta}</span>
+              </div>
+              <div className="form-section">
+                <h3>Accion a crear</h3>
+                <div className="edit-form-grid">
+                  <label>
+                    Tipo de accion
+                    <select value={accionModal.tipoAccion} onChange={(event) => updateAccionModal(setAccionModal, 'tipoAccion', event.target.value)} required>
+                      {actionOptionsForAlert(accionModal.alerta.tipoAlerta).map((item) => (
+                        <option key={item.value} value={item.value}>{item.label}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <TextField label="Fecha efectiva" type="date" value={accionModal.fechaEfectiva} onChange={(value) => updateAccionModal(setAccionModal, 'fechaEfectiva', value)} required />
+                  <AlertActionApproverSelect value={accionModal.departamentoResponsableId} onChange={(value) => updateAccionModal(setAccionModal, 'departamentoResponsableId', value)} options={accionModal.aprobadores} />
+                  {accionModal.aprobadores.length === 0 && (
+                    <div className="form-note warning span-2">No hay lider aprobador configurado para el departamento.</div>
+                  )}
+                  <label className="span-2">
+                    Justificacion
+                    <textarea
+                      value={accionModal.justificacion}
+                      onChange={(event) => updateAccionModal(setAccionModal, 'justificacion', event.target.value)}
+                      required
+                    />
+                  </label>
+                  <label className="span-2">
+                    Observaciones
+                    <textarea
+                      value={accionModal.observaciones}
+                      onChange={(event) => updateAccionModal(setAccionModal, 'observaciones', event.target.value)}
+                    />
+                  </label>
+                </div>
+              </div>
+              <div className="modal-actions">
+                <button className="secondary-button" type="button" onClick={() => setAccionModal(null)}>Cancelar</button>
+                <button className="primary-button" disabled={busy} type="submit">
+                  <Save size={18} />
+                  {busy ? 'Guardando...' : 'Crear accion'}
                 </button>
               </div>
             </form>
@@ -460,6 +610,65 @@ function ReadOnlyField({ label, value }: { label: string; value: string }) {
   );
 }
 
+function AlertActionApproverSelect({
+  value,
+  onChange,
+  options
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  options: AprobadorSolicitud[];
+}) {
+  return (
+    <label>
+      Lider aprobador
+      <select value={value} onChange={(event) => onChange(event.target.value)}>
+        <option value="">Sin lider seleccionado</option>
+        {options.map((item) => (
+          <option key={item.departamentoResponsableId} value={item.departamentoResponsableId}>
+            {item.nombreCompleto} - {item.cargo} - {item.departamento}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+function canCreateActionFromAlert(alerta: Alerta) {
+  return alerta.tipoAlerta === 'Contrato' || alerta.tipoAlerta === 'PeriodoProbatorio';
+}
+
+function actionOptionsForAlert(tipoAlerta: string) {
+  if (tipoAlerta === 'Contrato') {
+    return [
+      { value: 'RenovacionExtensionContrato', label: 'Renovacion / Extension de contrato' },
+      { value: 'ContinuidadLaboral', label: 'Continuidad laboral' },
+      { value: 'FinalizacionDesvinculacion', label: 'Finalizacion / Desvinculacion' }
+    ];
+  }
+
+  return [
+    { value: 'ContinuidadLaboral', label: 'Continuidad laboral' },
+    { value: 'FinalizacionDesvinculacion', label: 'Finalizacion / Desvinculacion' }
+  ];
+}
+
+function toAccionDesdeAlertaState(alerta: Alerta, colaborador: ColaboradorDetalle, aprobadores: AprobadorSolicitud[]): AccionDesdeAlertaState {
+  const defaultTipo = actionOptionsForAlert(alerta.tipoAlerta)[0]?.value ?? '';
+  return {
+    alerta,
+    colaborador,
+    aprobadores,
+    tipoAccion: defaultTipo,
+    fechaEfectiva: new Date().toISOString().slice(0, 10),
+    departamentoResponsableId: aprobadores[0]?.departamentoResponsableId ? String(aprobadores[0].departamentoResponsableId) : '',
+    justificacion: alerta.tipoAlerta === 'Contrato'
+      ? 'Decision laboral por vencimiento de contrato.'
+      : 'Decision laboral por periodo probatorio.',
+    observaciones: alerta.mensaje
+  };
+}
+
 function toGestionState(alerta: Alerta, mode: GestionMode, colaborador: ColaboradorDetalle, documento: Documento | null): GestionState {
   return {
     alerta,
@@ -554,6 +763,14 @@ function updateModal<K extends keyof GestionState>(
   setter: Dispatch<SetStateAction<GestionState | null>>,
   key: K,
   value: GestionState[K]
+) {
+  setter((current) => current ? { ...current, [key]: value } : current);
+}
+
+function updateAccionModal<K extends keyof AccionDesdeAlertaState>(
+  setter: Dispatch<SetStateAction<AccionDesdeAlertaState | null>>,
+  key: K,
+  value: AccionDesdeAlertaState[K]
 ) {
   setter((current) => current ? { ...current, [key]: value } : current);
 }

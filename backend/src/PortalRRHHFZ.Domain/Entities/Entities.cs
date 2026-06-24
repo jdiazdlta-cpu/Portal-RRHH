@@ -169,6 +169,7 @@ public sealed class Alerta : BaseEntity
     public Colaborador Colaborador { get; set; } = null!;
     public DocumentoColaborador? DocumentoColaborador { get; set; }
     public Usuario? UsuarioGestiono { get; set; }
+    public ICollection<AccionPersonal> AccionesPersonalOrigen { get; set; } = new List<AccionPersonal>();
 }
 
 public sealed class HistorialColaborador : BaseEntity
@@ -265,6 +266,7 @@ public sealed class AccionPersonal : BaseEntity
 {
     public int AccionPersonalId { get; set; }
     public int SolicitudId { get; set; }
+    public int? AlertaOrigenId { get; set; }
     public TipoAccionPersonal TipoAccion { get; set; }
     public int? ColaboradorId { get; set; }
     public DateTime FechaEfectiva { get; set; }
@@ -351,6 +353,7 @@ public sealed class AccionPersonal : BaseEntity
     public string? ErrorEjecucion { get; set; }
 
     public Solicitud Solicitud { get; set; } = null!;
+    public Alerta? AlertaOrigen { get; set; }
     public Colaborador? Colaborador { get; set; }
     public Empresa? EmpresaActual { get; set; }
     public Departamento? DepartamentoActual { get; set; }

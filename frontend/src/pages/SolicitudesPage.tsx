@@ -623,6 +623,11 @@ export function SolicitudesPage() {
   async function saveRequisicion(enviar: boolean) {
     if (!form) return;
 
+    if (enviar && user?.rol === 'Supervisor' && !form.departamentoResponsableId) {
+      setFormError('Debe seleccionar un aprobador configurado en Organigrama antes de enviar.');
+      return;
+    }
+
     setSaving(true);
     setFormError('');
     setNotice('');
@@ -649,6 +654,11 @@ export function SolicitudesPage() {
 
   async function saveAccionPersonal(enviar: boolean) {
     if (!accionForm) return;
+
+    if (enviar && user?.rol === 'Supervisor' && !accionForm.departamentoResponsableId) {
+      setFormError('Debe seleccionar un aprobador configurado en Organigrama antes de enviar.');
+      return;
+    }
 
     setSaving(true);
     setFormError('');
@@ -777,12 +787,13 @@ export function SolicitudesPage() {
               <th>Departamento</th>
               <th>Fecha</th>
               <th>Actualizacion</th>
+              <th>Pendiente de</th>
               <th>Acciones</th>
             </tr>
           </thead>
           <tbody>
             {solicitudes.length === 0 && (
-              <tr><td colSpan={9}><div className="empty-state">Sin solicitudes</div></td></tr>
+              <tr><td colSpan={10}><div className="empty-state">Sin solicitudes</div></td></tr>
             )}
             {solicitudes.map((item) => (
               <tr key={item.solicitudId}>
@@ -794,11 +805,15 @@ export function SolicitudesPage() {
                 <td>{item.departamento ?? 'N/D'}</td>
                 <td>{formatDate(item.fechaSolicitud)}</td>
                 <td>{formatDate(item.ultimaActualizacion)}</td>
+                <td>{item.pendienteDe ?? 'N/D'}</td>
                 <td>
-                  <button className="icon-text-button" onClick={() => openDetail(item.solicitudId)} type="button">
-                    <Eye size={16} />
-                    Ver
-                  </button>
+                  <div className="table-actions-stack">
+                    <ActionChips actions={item.accionesDisponibles} />
+                    <button className="icon-text-button" onClick={() => openDetail(item.solicitudId)} type="button">
+                      <Eye size={16} />
+                      Ver
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -834,7 +849,7 @@ export function SolicitudesPage() {
                   <TextareaField label="Justificacion" value={form.justificacion} onChange={(value) => updateForm(setForm, 'justificacion', value)} span />
                   <TextareaField label="Observaciones" value={form.observaciones} onChange={(value) => updateForm(setForm, 'observaciones', value)} span />
                   {form.empresaId && form.departamentoSolicitadoId && aprobadores.length === 0 && (
-                    <div className="form-note warning span-2">No hay aprobadores configurados para la empresa y departamento seleccionados.</div>
+                    <div className="form-note warning span-2">{approvalWarningText(canViewCompensation)}</div>
                   )}
                 </div>
               </div>
@@ -960,13 +975,13 @@ export function SolicitudesPage() {
                   <TextareaField label="Justificacion" value={accionForm.justificacion} onChange={(value) => changeAccionField('justificacion', value)} span />
                   <TextareaField label="Observaciones" value={accionForm.observaciones} onChange={(value) => changeAccionField('observaciones', value)} span />
                   {accionForm.empresaId && accionForm.departamentoId && aprobadores.length === 0 && (
-                    <div className="form-note warning span-2">No hay aprobadores configurados para la empresa y departamento seleccionados.</div>
+                    <div className="form-note warning span-2">{approvalWarningText(canViewCompensation)}</div>
                   )}
                 </div>
               </div>
 
               {accionForm.colaboradorId && colaboradorActual && (
-                <div className="form-section">
+                <div className="form-section action-current-section">
                   <h3>Datos actuales del colaborador</h3>
                   <div className="detail-grid">
                     {renderSelectedCollaborator(colaboradorActual, canViewCompensation)}
@@ -975,7 +990,7 @@ export function SolicitudesPage() {
               )}
 
               {accionForm.tipoAccion === 'Vacaciones' && (
-                <div className="form-section">
+                <div className="form-section action-specific-section">
                   <h3>Vacaciones</h3>
                   <div className="edit-form-grid">
                     <TextField label="Dias" type="number" value={accionForm.diasVacaciones} onChange={(value) => changeAccionField('diasVacaciones', value)} required />
@@ -989,7 +1004,7 @@ export function SolicitudesPage() {
               )}
 
               {accionForm.tipoAccion === 'ContratacionIngreso' && (
-                <div className="form-section">
+                <div className="form-section action-specific-section">
                   <h3>Contratacion / Ingreso</h3>
                   <div className="edit-form-grid">
                     <Select label="Tipo contrato" value={accionForm.tipoContratoNuevoId} onChange={(value) => changeAccionField('tipoContratoNuevoId', value)} options={tiposContrato} emptyText="Seleccione" required />
@@ -1006,8 +1021,15 @@ export function SolicitudesPage() {
               )}
 
               {accionForm.tipoAccion === 'AjusteSalario' && (
-                <div className="form-section">
+                <div className="form-section action-specific-section">
                   <h3>Ajuste salarial</h3>
+                  {canViewCompensation && colaboradorActual && (
+                    <div className="detail-grid action-readonly-strip">
+                      <DetailField label="Salario actual" value={formatMoney(colaboradorActual.salarioActual)} />
+                      <DetailField label="Viaticos actuales" value={formatMoney(colaboradorActual.viaticosActual)} />
+                      <DetailField label="Gastos representacion actuales" value={formatMoney(colaboradorActual.gastosRepresentacionActual)} />
+                    </div>
+                  )}
                   <div className="edit-form-grid">
                     <TextField label="Nuevo salario" type="number" value={accionForm.salarioNuevoAjuste} onChange={(value) => changeAccionField('salarioNuevoAjuste', value)} required />
                     <TextField label="Ajuste por mes" type="number" value={accionForm.ajustePorMes} onChange={(value) => changeAccionField('ajustePorMes', value)} />
@@ -1017,8 +1039,8 @@ export function SolicitudesPage() {
               )}
 
               {accionForm.tipoAccion === 'CambioPosicion' && (
-                <div className="form-section">
-                  <h3>Cambio de posicion</h3>
+                <div className="form-section action-target-section">
+                  <h3>Datos nuevos / destino</h3>
                   <div className="edit-form-grid">
                     <Select label="Empresa nueva" value={accionForm.empresaNuevaId} onChange={changeDestinoEmpresa} options={empresas} emptyText="Seleccione" required />
                     <Select label="Departamento nuevo" value={accionForm.departamentoNuevoId} onChange={changeDestinoDepartamento} options={destinoDepartamentos} emptyText="Seleccione" required />
@@ -1029,8 +1051,8 @@ export function SolicitudesPage() {
               )}
 
               {accionForm.tipoAccion === 'TrasladoCambioArea' && (
-                <div className="form-section">
-                  <h3>Traslado / Cambio de area</h3>
+                <div className="form-section action-target-section">
+                  <h3>Datos nuevos / destino</h3>
                   <div className="edit-form-grid">
                     <Select label="Empresa traslado" value={accionForm.empresaTrasladoNuevaId} onChange={changeDestinoEmpresa} options={empresas} emptyText="Seleccione" required />
                     <Select label="Departamento traslado" value={accionForm.departamentoTrasladoNuevoId} onChange={changeDestinoDepartamento} options={destinoDepartamentos} emptyText="Seleccione" required />
@@ -1041,7 +1063,7 @@ export function SolicitudesPage() {
               )}
 
               {accionForm.tipoAccion === 'Licencia' && (
-                <div className="form-section">
+                <div className="form-section action-specific-section">
                   <h3>Licencia</h3>
                   <div className="edit-form-grid">
                     <TextField label="Tipo licencia" value={accionForm.tipoLicenciaAccion} onChange={(value) => changeAccionField('tipoLicenciaAccion', value)} />
@@ -1054,7 +1076,7 @@ export function SolicitudesPage() {
               )}
 
               {accionForm.tipoAccion === 'FinalizacionDesvinculacion' && (
-                <div className="form-section">
+                <div className="form-section action-specific-section">
                   <h3>Finalizacion / Desvinculacion</h3>
                   <div className="edit-form-grid">
                     <TextField label="Tipo finalizacion" value={accionForm.tipoFinalizacion} onChange={(value) => changeAccionField('tipoFinalizacion', value)} required />
@@ -1081,7 +1103,7 @@ export function SolicitudesPage() {
               )}
 
               {['RenovacionExtensionContrato', 'ContinuidadLaboral', 'Otro'].includes(accionForm.tipoAccion) && (
-                <div className="form-section">
+                <div className="form-section action-specific-section">
                   <h3>Detalle</h3>
                   <div className="edit-form-grid">
                     <TextareaField label="Observaciones especificas" value={accionForm.observaciones} onChange={(value) => changeAccionField('observaciones', value)} span />
@@ -1197,6 +1219,18 @@ export function SolicitudesPage() {
                     </div>
                   </section>
 
+                  {detail.accionPersonal.alertaOrigenId && (
+                    <section className="detail-section">
+                      <h3>Alerta origen</h3>
+                      <div className="detail-grid">
+                        <DetailField label="Alerta" value={`#${detail.accionPersonal.alertaOrigenId}`} />
+                        <DetailField label="Tipo alerta" value={detail.accionPersonal.alertaOrigenTipo ?? 'N/D'} />
+                        <DetailField label="Fecha vencimiento" value={formatDate(detail.accionPersonal.alertaOrigenFechaVencimiento)} />
+                        <DetailField label="Mensaje" value={detail.accionPersonal.alertaOrigenMensaje ?? 'N/D'} span />
+                      </div>
+                    </section>
+                  )}
+
                   <section className="detail-section">
                     <h3>Datos especificos</h3>
                     <div className="detail-grid">
@@ -1308,6 +1342,26 @@ function Select({
       </select>
     </label>
   );
+}
+
+function ActionChips({ actions }: { actions: string[] }) {
+  if (actions.length === 0) {
+    return <span className="muted-text">Sin acciones</span>;
+  }
+
+  return (
+    <div className="action-chip-row">
+      {actions.map((action) => (
+        <span className="badge neutral" key={action}>{actionLabel(action)}</span>
+      ))}
+    </div>
+  );
+}
+
+function approvalWarningText(canSendWithoutApprover: boolean) {
+  return canSendWithoutApprover
+    ? 'No hay aprobadores configurados para la empresa y departamento seleccionados. Admin/RRHH pueden continuar si el flujo actual lo permite.'
+    : 'No hay aprobadores configurados para la empresa y departamento seleccionados. Debe seleccionar un aprobador antes de enviar.';
 }
 
 function AprobadorSelect({

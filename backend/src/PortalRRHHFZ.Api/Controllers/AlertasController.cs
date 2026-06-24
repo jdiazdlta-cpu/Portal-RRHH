@@ -21,6 +21,8 @@ public sealed class AlertasController(AppDbContext db) : ControllerBase
     private const string ResultadoPasoCesante = "PasoCesante";
     private const string ResultadoExcepcion = "Excepcion";
 
+    private sealed record ApproverSelection(int? UsuarioId, int? ColaboradorId, int? DepartamentoResponsableId);
+
     [HttpGet]
     public async Task<IActionResult> Get([FromQuery] string? estado, [FromQuery] string? tipo, [FromQuery] string? tipoAlerta, CancellationToken cancellationToken)
     {
@@ -121,6 +123,243 @@ public sealed class AlertasController(AppDbContext db) : ControllerBase
     {
         var creadas = await RecalcularAlertasAsync(cancellationToken);
         return Ok(ApiResponse<object>.Ok(new { creadas }, "Alertas recalculadas."));
+    }
+
+    [HttpPost("{id:int}/crear-accion-personal")]
+    public async Task<IActionResult> CrearAccionPersonalDesdeAlerta(int id, [FromBody] CrearAccionPersonalDesdeAlertaRequest request, CancellationToken cancellationToken)
+    {
+        var alerta = await db.Alertas
+            .Include(x => x.Colaborador).ThenInclude(x => x.Empresa)
+            .Include(x => x.Colaborador).ThenInclude(x => x.Departamento)
+            .Include(x => x.Colaborador).ThenInclude(x => x.Cargo)
+            .Include(x => x.Colaborador).ThenInclude(x => x.JefeInmediato)
+            .Include(x => x.Colaborador).ThenInclude(x => x.TipoContrato)
+            .Include(x => x.Colaborador).ThenInclude(x => x.Estatus)
+            .FirstOrDefaultAsync(x => x.AlertaId == id && x.IsActive, cancellationToken);
+
+        if (alerta is null)
+        {
+            return NotFound(ApiResponse<object>.Fail("Alerta no encontrada."));
+        }
+
+        if (alerta.TipoAlerta is not (TipoAlerta.Contrato or TipoAlerta.PeriodoProbatorio))
+        {
+            return BadRequest(ApiResponse<object>.Fail("Solo las alertas de contrato o periodo probatorio pueden crear accion de personal."));
+        }
+
+        if (!TryParseTipoAccion(request.TipoAccion, out var tipoAccion) || !IsAllowedActionForAlert(alerta.TipoAlerta, tipoAccion))
+        {
+            return BadRequest(ApiResponse<object>.Fail("Tipo de accion no valido para esta alerta."));
+        }
+
+        if (!IsOperationalCollaborator(alerta.Colaborador))
+        {
+            return BadRequest(ApiResponse<object>.Fail("No se puede crear accion desde alerta para un colaborador cesante, suspendido o inactivo."));
+        }
+
+        if (!request.FechaEfectiva.HasValue)
+        {
+            return BadRequest(ApiResponse<object>.Fail("Fecha efectiva es obligatoria."));
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Justificacion))
+        {
+            return BadRequest(ApiResponse<object>.Fail("Justificacion es obligatoria."));
+        }
+
+        var approverValidation = await ValidateDepartamentoResponsableAsync(request.DepartamentoResponsableId, alerta.Colaborador, cancellationToken);
+        if (approverValidation is not null)
+        {
+            return BadRequest(ApiResponse<object>.Fail(approverValidation));
+        }
+
+        var approver = await ResolveApproverAsync(request.DepartamentoResponsableId, cancellationToken);
+        var solicitud = new Solicitud
+        {
+            CodigoSolicitud = await GenerateCodigoSolicitudAsync(cancellationToken),
+            TipoSolicitud = TipoSolicitud.AccionPersonal,
+            Estado = EstadoSolicitud.Borrador,
+            SolicitanteUsuarioId = User.CurrentUserId(),
+            ColaboradorId = alerta.ColaboradorId,
+            EmpresaId = alerta.Colaborador.EmpresaId,
+            DepartamentoId = alerta.Colaborador.DepartamentoId,
+            CargoId = alerta.Colaborador.CargoId,
+            FechaSolicitud = DateTime.UtcNow,
+            FechaEfectiva = request.FechaEfectiva.Value.Date,
+            Justificacion = request.Justificacion.Trim(),
+            Observaciones = BuildAlertActionObservation(alerta, request.Observaciones),
+            CreatedBy = User.Identity?.Name
+        };
+
+        solicitud.AccionPersonal = BuildAccionPersonalFromAlert(alerta, tipoAccion, request);
+        SetApprovalFlow(solicitud, approver);
+        solicitud.Historial.Add(new SolicitudHistorial
+        {
+            Accion = "CREACION_DESDE_ALERTA",
+            EstadoNuevo = solicitud.Estado,
+            Comentario = $"Accion de personal creada desde alerta {alerta.AlertaId} ({alerta.TipoAlerta}).",
+            UsuarioId = User.CurrentUserId()
+        });
+
+        db.Solicitudes.Add(solicitud);
+        await db.SaveChangesAsync(cancellationToken);
+
+        var result = new AccionPersonalDesdeAlertaResultDto(
+            solicitud.SolicitudId,
+            solicitud.CodigoSolicitud,
+            solicitud.AccionPersonal.AccionPersonalId,
+            alerta.AlertaId);
+
+        return CreatedAtAction(
+            "GetById",
+            "Solicitudes",
+            new { id = solicitud.SolicitudId },
+            ApiResponse<AccionPersonalDesdeAlertaResultDto>.Ok(result, "Accion de personal creada desde alerta."));
+    }
+
+    private async Task<string?> ValidateDepartamentoResponsableAsync(int? departamentoResponsableId, Colaborador colaborador, CancellationToken cancellationToken)
+    {
+        if (!departamentoResponsableId.HasValue)
+        {
+            return null;
+        }
+
+        var responsable = await db.DepartamentoResponsables
+            .Include(x => x.ColaboradorResponsable).ThenInclude(x => x.Estatus)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.DepartamentoResponsableId == departamentoResponsableId.Value, cancellationToken);
+
+        if (responsable is null || !responsable.IsActive || responsable.FechaFin?.Date < DateTime.Today)
+        {
+            return "Responsable de aprobacion no encontrado o inactivo.";
+        }
+
+        if (!responsable.PuedeAprobarSolicitudes)
+        {
+            return "El responsable seleccionado no puede aprobar solicitudes.";
+        }
+
+        if (responsable.EmpresaId != colaborador.EmpresaId)
+        {
+            return "El responsable seleccionado no pertenece a la empresa del colaborador.";
+        }
+
+        if (responsable.DepartamentoId != colaborador.DepartamentoId)
+        {
+            return "El responsable seleccionado no pertenece al departamento del colaborador.";
+        }
+
+        return IsOperationalCollaborator(responsable.ColaboradorResponsable)
+            ? null
+            : "El colaborador aprobador no esta activo para aprobaciones operativas.";
+    }
+
+    private async Task<ApproverSelection> ResolveApproverAsync(int? departamentoResponsableId, CancellationToken cancellationToken)
+    {
+        if (!departamentoResponsableId.HasValue)
+        {
+            return new ApproverSelection(null, null, null);
+        }
+
+        var responsable = await db.DepartamentoResponsables
+            .AsNoTracking()
+            .FirstAsync(x => x.DepartamentoResponsableId == departamentoResponsableId.Value, cancellationToken);
+
+        return new ApproverSelection(responsable.UsuarioResponsableId, responsable.ColaboradorResponsableId, responsable.DepartamentoResponsableId);
+    }
+
+    private static void SetApprovalFlow(Solicitud solicitud, ApproverSelection approver)
+    {
+        solicitud.Aprobaciones.Add(new SolicitudAprobacion
+        {
+            Orden = 1,
+            Etapa = EtapaAprobacion.Lider,
+            RolAprobador = AppRoles.Supervisor,
+            UsuarioAprobadorId = approver.UsuarioId,
+            ColaboradorAprobadorId = approver.ColaboradorId,
+            DepartamentoResponsableId = approver.DepartamentoResponsableId,
+            Estado = EstadoAprobacion.Omitida
+        });
+
+        solicitud.Aprobaciones.Add(new SolicitudAprobacion
+        {
+            Orden = 2,
+            Etapa = EtapaAprobacion.RRHH,
+            RolAprobador = AppRoles.RRHH,
+            Estado = EstadoAprobacion.Omitida
+        });
+    }
+
+    private AccionPersonal BuildAccionPersonalFromAlert(Alerta alerta, TipoAccionPersonal tipoAccion, CrearAccionPersonalDesdeAlertaRequest request)
+    {
+        var colaborador = alerta.Colaborador;
+        return new AccionPersonal
+        {
+            AlertaOrigenId = alerta.AlertaId,
+            TipoAccion = tipoAccion,
+            ColaboradorId = alerta.ColaboradorId,
+            FechaEfectiva = request.FechaEfectiva!.Value.Date,
+            Justificacion = request.Justificacion.Trim(),
+            Observaciones = BuildAlertActionObservation(alerta, request.Observaciones),
+            NombreColaboradorSnapshot = colaborador.NombreCompleto(),
+            NoEmpleadoSnapshot = colaborador.NoEmpleado,
+            CedulaSnapshot = colaborador.Cedula,
+            EmpresaActualId = colaborador.EmpresaId,
+            DepartamentoActualId = colaborador.DepartamentoId,
+            CargoActualId = colaborador.CargoId,
+            JefeActualId = colaborador.JefeInmediatoId,
+            TipoContratoActualId = colaborador.TipoContratoId,
+            EstatusActualId = colaborador.EstatusId,
+            SalarioActual = colaborador.Salario,
+            ViaticosActual = colaborador.Viaticos,
+            GastosRepresentacionActual = colaborador.GastosRepresentacion,
+            RenovacionExtensionContrato = tipoAccion == TipoAccionPersonal.RenovacionExtensionContrato ? true : null,
+            ContinuidadLaboral = tipoAccion == TipoAccionPersonal.ContinuidadLaboral ? true : null,
+            TipoFinalizacion = tipoAccion == TipoAccionPersonal.FinalizacionDesvinculacion ? "Pendiente por decision de alerta" : null,
+            CreatedBy = User.Identity?.Name
+        };
+    }
+
+    private static string BuildAlertActionObservation(Alerta alerta, string? observaciones)
+    {
+        var prefix = $"Origen alerta #{alerta.AlertaId}: {alerta.TipoAlerta} con vencimiento {alerta.FechaVencimiento:yyyy-MM-dd}.";
+        return string.IsNullOrWhiteSpace(observaciones)
+            ? prefix
+            : $"{prefix} {observaciones.Trim()}";
+    }
+
+    private async Task<string> GenerateCodigoSolicitudAsync(CancellationToken cancellationToken)
+    {
+        var year = DateTime.UtcNow.Year;
+        var prefix = $"AP-{year}-";
+        var count = await db.Solicitudes.CountAsync(x => x.CodigoSolicitud.StartsWith(prefix), cancellationToken);
+        return $"{prefix}{count + 1:000000}";
+    }
+
+    private static bool IsAllowedActionForAlert(TipoAlerta tipoAlerta, TipoAccionPersonal tipoAccion)
+    {
+        return tipoAlerta switch
+        {
+            TipoAlerta.Contrato => tipoAccion is TipoAccionPersonal.RenovacionExtensionContrato or TipoAccionPersonal.ContinuidadLaboral or TipoAccionPersonal.FinalizacionDesvinculacion,
+            TipoAlerta.PeriodoProbatorio => tipoAccion is TipoAccionPersonal.ContinuidadLaboral or TipoAccionPersonal.FinalizacionDesvinculacion,
+            _ => false
+        };
+    }
+
+    private static bool TryParseTipoAccion(string? value, out TipoAccionPersonal tipoAccion)
+    {
+        if (Enum.TryParse(value, true, out tipoAccion))
+        {
+            return Enum.IsDefined(tipoAccion);
+        }
+
+        tipoAccion = default;
+        return false;
+    }
+
+    private static bool IsOperationalCollaborator(Colaborador colaborador)
+    {
+        return colaborador.IsActive && EstatusOperativos.Contains(colaborador.Estatus.Codigo);
     }
 
     private async Task<IActionResult> CambiarEstado(int id, EstadoAlerta estado, string? observacion, CancellationToken cancellationToken)

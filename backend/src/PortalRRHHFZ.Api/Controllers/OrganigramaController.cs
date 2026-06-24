@@ -247,6 +247,96 @@ public sealed class OrganigramaController(AppDbContext db) : ControllerBase
         return CreatedAtAction(nameof(GetNodes), new { id }, ApiResponse<object>.Ok(new { node.OrganigramaNodoId }, "Nodo creado."));
     }
 
+    [HttpPost("nodos/{nodoPadreId:int}/hijos-bulk")]
+    [Authorize(Policy = AppPolicies.RequireAdmin)]
+    public async Task<IActionResult> CreateChildNodesBulk(int nodoPadreId, [FromBody] CreateOrganigramaHijosBulkRequest request, CancellationToken cancellationToken)
+    {
+        var parent = await db.OrganigramaNodos
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.OrganigramaNodoId == nodoPadreId, cancellationToken);
+
+        if (parent is null)
+        {
+            return NotFound(ApiResponse<object>.Fail("Nodo padre no encontrado."));
+        }
+
+        if (!parent.IsActive)
+        {
+            return BadRequest(ApiResponse<object>.Fail("El nodo padre debe estar activo para crear hijos."));
+        }
+
+        if (request.Hijos.Count == 0)
+        {
+            return BadRequest(ApiResponse<object>.Fail("Debe indicar al menos un nodo hijo."));
+        }
+
+        if (request.Hijos.Count > 50)
+        {
+            return BadRequest(ApiResponse<object>.Fail("No se pueden crear mas de 50 nodos hijos por operacion."));
+        }
+
+        var nodes = new List<OrganigramaNodo>();
+        for (var index = 0; index < request.Hijos.Count; index++)
+        {
+            var child = request.Hijos[index];
+            var nodeRequest = new CreateOrganigramaNodoRequest
+            {
+                NombreNodo = child.NombreNodo,
+                Descripcion = child.Descripcion,
+                EmpresaId = child.EmpresaId ?? parent.EmpresaId,
+                DepartamentoId = child.DepartamentoId ?? parent.DepartamentoId,
+                CargoId = child.CargoId,
+                NodoPadreId = parent.OrganigramaNodoId,
+                Nivel = parent.Nivel + 1,
+                Orden = child.Orden,
+                EsRolOperativo = child.EsRolOperativo,
+                IsActive = child.IsActive
+            };
+
+            var validation = await ValidateNodeAsync(parent.OrganigramaId, null, nodeRequest, cancellationToken);
+            if (validation is not null)
+            {
+                return BadRequest(ApiResponse<object>.Fail($"Fila {index + 1}: {validation}"));
+            }
+
+            nodes.Add(new OrganigramaNodo
+            {
+                OrganigramaId = parent.OrganigramaId,
+                EmpresaId = nodeRequest.EmpresaId,
+                DepartamentoId = nodeRequest.DepartamentoId,
+                CargoId = nodeRequest.CargoId,
+                NodoPadreId = parent.OrganigramaNodoId,
+                NombreNodo = nodeRequest.NombreNodo.Trim(),
+                Descripcion = nodeRequest.Descripcion?.Trim(),
+                Nivel = parent.Nivel + 1,
+                Orden = nodeRequest.Orden,
+                EsRolOperativo = nodeRequest.EsRolOperativo,
+                IsActive = nodeRequest.IsActive,
+                CreatedBy = CurrentUserName()
+            });
+        }
+
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        db.OrganigramaNodos.AddRange(nodes);
+        await db.SaveChangesAsync(cancellationToken);
+
+        foreach (var node in nodes)
+        {
+            AddHistory(nameof(OrganigramaNodo), node.OrganigramaNodoId, "CREACION_BULK", null, ToJson(node), $"Creacion masiva de hijo para nodo padre {nodoPadreId}.");
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+
+        return Ok(ApiResponse<object>.Ok(new
+        {
+            creados = nodes.Count,
+            organigramaId = parent.OrganigramaId,
+            nodoPadreId,
+            nodos = nodes.Select(x => x.OrganigramaNodoId).ToList()
+        }, "Nodos hijos creados."));
+    }
+
     [HttpPut("nodos/{nodoId:int}")]
     [HttpPatch("nodos/{nodoId:int}")]
     [Authorize(Policy = AppPolicies.RequireAdmin)]
@@ -295,14 +385,24 @@ public sealed class OrganigramaController(AppDbContext db) : ControllerBase
     public Task<IActionResult> ActivarNode(int nodoId, CancellationToken cancellationToken) => ToggleNode(nodoId, true, cancellationToken);
 
     [HttpGet("responsables")]
-    public async Task<IActionResult> GetResponsables([FromQuery] int? empresaId, [FromQuery] int? departamentoId, [FromQuery] bool soloActivos = true, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> GetResponsables(
+        [FromQuery] int? empresaId,
+        [FromQuery] int? departamentoId,
+        [FromQuery] string? tipoResponsable,
+        [FromQuery] bool soloActivos = true,
+        CancellationToken cancellationToken = default)
     {
         if (!CanReadOrganigrama())
         {
             return Forbid();
         }
 
-        var data = await LoadResponsablesAsync(empresaId, departamentoId, soloActivos, cancellationToken);
+        if (!string.IsNullOrWhiteSpace(tipoResponsable) && !ValidResponsibleTypes.Contains(tipoResponsable))
+        {
+            return BadRequest(ApiResponse<object>.Fail("Tipo de responsable no valido."));
+        }
+
+        var data = await LoadResponsablesAsync(empresaId, departamentoId, tipoResponsable, soloActivos, cancellationToken);
         return Ok(ApiResponse<List<DepartamentoResponsableDto>>.Ok(data));
     }
 
@@ -537,10 +637,18 @@ public sealed class OrganigramaController(AppDbContext db) : ControllerBase
 
     private async Task<IActionResult> ToggleResponsable(int id, bool active, CancellationToken cancellationToken)
     {
-        var responsable = await db.DepartamentoResponsables.FirstOrDefaultAsync(x => x.DepartamentoResponsableId == id, cancellationToken);
+        var responsable = await db.DepartamentoResponsables
+            .Include(x => x.ColaboradorResponsable)
+            .ThenInclude(x => x.Estatus)
+            .FirstOrDefaultAsync(x => x.DepartamentoResponsableId == id, cancellationToken);
         if (responsable is null)
         {
             return NotFound(ApiResponse<object>.Fail("Responsable no encontrado."));
+        }
+
+        if (active && !IsOperationalCollaborator(responsable.ColaboradorResponsable))
+        {
+            return BadRequest(ApiResponse<object>.Fail("No se puede activar un responsable cuyo colaborador esta cesante, suspendido o inactivo."));
         }
 
         var before = ToJson(responsable);
@@ -751,7 +859,7 @@ public sealed class OrganigramaController(AppDbContext db) : ControllerBase
         return data;
     }
 
-    private async Task<List<DepartamentoResponsableDto>> LoadResponsablesAsync(int? empresaId, int? departamentoId, bool soloActivos, CancellationToken cancellationToken)
+    private async Task<List<DepartamentoResponsableDto>> LoadResponsablesAsync(int? empresaId, int? departamentoId, string? tipoResponsable, bool soloActivos, CancellationToken cancellationToken)
     {
         var query = db.DepartamentoResponsables
             .Include(x => x.Empresa)
@@ -777,6 +885,12 @@ public sealed class OrganigramaController(AppDbContext db) : ControllerBase
         if (departamentoId.HasValue)
         {
             query = query.Where(x => x.DepartamentoId == departamentoId.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(tipoResponsable))
+        {
+            var normalizedType = NormalizeResponsibleType(tipoResponsable);
+            query = query.Where(x => x.TipoResponsable == normalizedType);
         }
 
         var responsables = await query
@@ -921,12 +1035,12 @@ public sealed class OrganigramaController(AppDbContext db) : ControllerBase
         var warnings = new List<string>();
         if (responsable.ColaboradorResponsable.EmpresaId != responsable.EmpresaId)
         {
-            warnings.Add("El colaborador pertenece a otra empresa.");
+            warnings.Add("Advertencia: este responsable pertenece a otra empresa.");
         }
 
         if (responsable.ColaboradorResponsable.DepartamentoId != responsable.DepartamentoId)
         {
-            warnings.Add("El colaborador pertenece a otro departamento.");
+            warnings.Add("Advertencia: este responsable pertenece a otro departamento.");
         }
 
         return warnings;

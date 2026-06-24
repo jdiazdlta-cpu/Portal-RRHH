@@ -50,8 +50,7 @@ public sealed class SolicitudesController(AppDbContext db) : ControllerBase
         var data = new List<TipoSolicitudDisponibleDto>
         {
             new(TipoSolicitud.RequisicionPersonal.ToString(), "Requisicion de Personal", true, "Disponible"),
-            new(TipoSolicitud.AccionPersonal.ToString(), "Accion de Personal", true, "Disponible"),
-            new(TipoSolicitud.Vacaciones.ToString(), "Solicitud de Vacaciones", false, "Proximamente")
+            new(TipoSolicitud.AccionPersonal.ToString(), "Accion de Personal", true, "Disponible")
         };
 
         return Ok(ApiResponse<List<TipoSolicitudDisponibleDto>>.Ok(data));
@@ -97,7 +96,9 @@ public sealed class SolicitudesController(AppDbContext db) : ControllerBase
             .Include(x => x.SolicitanteUsuario)
             .Include(x => x.Empresa)
             .Include(x => x.Departamento)
-            .Include(x => x.Aprobaciones)
+            .Include(x => x.AccionPersonal)
+            .Include(x => x.Aprobaciones).ThenInclude(x => x.UsuarioAprobador)
+            .Include(x => x.Aprobaciones).ThenInclude(x => x.ColaboradorAprobador)
             .AsNoTracking()
             .AsQueryable();
 
@@ -626,6 +627,7 @@ public sealed class SolicitudesController(AppDbContext db) : ControllerBase
             .Include(x => x.RequisicionPersonal!).ThenInclude(x => x.DepartamentoSolicitado)
             .Include(x => x.RequisicionPersonal!).ThenInclude(x => x.ColaboradorReemplazado)
             .Include(x => x.RequisicionPersonal!).ThenInclude(x => x.TipoContrato)
+            .Include(x => x.AccionPersonal!).ThenInclude(x => x.AlertaOrigen)
             .Include(x => x.AccionPersonal!).ThenInclude(x => x.Colaborador)
             .Include(x => x.AccionPersonal!).ThenInclude(x => x.EmpresaActual)
             .Include(x => x.AccionPersonal!).ThenInclude(x => x.DepartamentoActual)
@@ -1311,7 +1313,7 @@ public sealed class SolicitudesController(AppDbContext db) : ControllerBase
         return $"{prefix}{count + 1:000000}";
     }
 
-    private static SolicitudListDto ToListDto(Solicitud solicitud)
+    private SolicitudListDto ToListDto(Solicitud solicitud)
     {
         return new SolicitudListDto(
             solicitud.SolicitudId,
@@ -1322,7 +1324,33 @@ public sealed class SolicitudesController(AppDbContext db) : ControllerBase
             solicitud.Empresa?.Nombre,
             solicitud.Departamento?.Nombre,
             solicitud.FechaSolicitud,
-            solicitud.UpdatedAt);
+            solicitud.UpdatedAt,
+            GetPendingLabel(solicitud),
+            GetAvailableActions(solicitud));
+    }
+
+    private static string? GetPendingLabel(Solicitud solicitud)
+    {
+        var pending = solicitud.Aprobaciones
+            .OrderBy(x => x.Orden)
+            .FirstOrDefault(x => x.Estado == EstadoAprobacion.Pendiente);
+
+        if (pending is null)
+        {
+            return solicitud.Estado switch
+            {
+                EstadoSolicitud.Borrador => "Solicitante",
+                EstadoSolicitud.Devuelta => "Solicitante",
+                EstadoSolicitud.Aprobada when solicitud.TipoSolicitud == TipoSolicitud.AccionPersonal && solicitud.AccionPersonal?.Ejecutada != true => "RRHH - ejecucion",
+                _ => null
+            };
+        }
+
+        var name = pending.ColaboradorAprobador?.NombreCompleto()
+            ?? pending.UsuarioAprobador?.NombreUsuario
+            ?? pending.RolAprobador;
+
+        return $"{pending.Etapa}: {name}";
     }
 
     private SolicitudDetailDto ToDetailDto(Solicitud solicitud)
@@ -1405,6 +1433,10 @@ public sealed class SolicitudesController(AppDbContext db) : ControllerBase
         return new AccionPersonalDto(
             accion.AccionPersonalId,
             accion.SolicitudId,
+            accion.AlertaOrigenId,
+            accion.AlertaOrigen?.TipoAlerta.ToString(),
+            accion.AlertaOrigen?.FechaVencimiento,
+            accion.AlertaOrigen?.Mensaje,
             accion.TipoAccion.ToString(),
             FormatTipoAccion(accion.TipoAccion),
             accion.ColaboradorId,

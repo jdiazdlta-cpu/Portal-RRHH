@@ -328,6 +328,8 @@ export type SolicitudList = {
   departamento?: string | null;
   fechaSolicitud: string;
   ultimaActualizacion?: string | null;
+  pendienteDe?: string | null;
+  accionesDisponibles: string[];
 };
 
 export type RequisicionPersonal = {
@@ -393,6 +395,10 @@ export type AccionPersonalCambioAplicado = {
 export type AccionPersonal = {
   accionPersonalId: number;
   solicitudId: number;
+  alertaOrigenId?: number | null;
+  alertaOrigenTipo?: string | null;
+  alertaOrigenFechaVencimiento?: string | null;
+  alertaOrigenMensaje?: string | null;
   tipoAccion: string;
   tipoAccionNombre: string;
   colaboradorId?: number | null;
@@ -773,6 +779,28 @@ export type OrganigramaNodoRequest = {
   isActive: boolean;
 };
 
+export type OrganigramaHijoBulkRequest = {
+  nombreNodo: string;
+  descripcion?: string | null;
+  empresaId?: number | null;
+  departamentoId?: number | null;
+  cargoId?: number | null;
+  orden: number;
+  esRolOperativo: boolean;
+  isActive: boolean;
+};
+
+export type OrganigramaHijosBulkRequest = {
+  hijos: OrganigramaHijoBulkRequest[];
+};
+
+export type OrganigramaHijosBulkResult = {
+  creados: number;
+  organigramaId: number;
+  nodoPadreId: number;
+  nodos: number[];
+};
+
 export type DepartamentoResponsableRequest = {
   empresaId: number;
   departamentoId: number;
@@ -785,4 +813,19 @@ export type DepartamentoResponsableRequest = {
   fechaFin?: string | null;
   observacion?: string | null;
   isActive: boolean;
+};
+
+export type CrearAccionPersonalDesdeAlertaRequest = {
+  tipoAccion: string;
+  fechaEfectiva: string;
+  justificacion: string;
+  departamentoResponsableId?: number | null;
+  observaciones?: string | null;
+};
+
+export type AccionPersonalDesdeAlertaResult = {
+  solicitudId: number;
+  codigoSolicitud: string;
+  accionPersonalId: number;
+  alertaOrigenId: number;
 };

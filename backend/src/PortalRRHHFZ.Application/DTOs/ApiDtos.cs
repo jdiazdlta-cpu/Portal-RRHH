@@ -138,7 +138,9 @@ public sealed record SolicitudListDto(
     string? Empresa,
     string? Departamento,
     DateTime FechaSolicitud,
-    DateTime? UltimaActualizacion);
+    DateTime? UltimaActualizacion,
+    string? PendienteDe,
+    IReadOnlyList<string> AccionesDisponibles);
 
 public sealed record SolicitudDetailDto(
     int SolicitudId,
@@ -214,6 +216,10 @@ public sealed record TipoAccionPersonalDto(string Tipo, string Nombre, bool Requ
 public sealed record AccionPersonalDto(
     int AccionPersonalId,
     int SolicitudId,
+    int? AlertaOrigenId,
+    string? AlertaOrigenTipo,
+    DateTime? AlertaOrigenFechaVencimiento,
+    string? AlertaOrigenMensaje,
     string TipoAccion,
     string TipoAccionNombre,
     int? ColaboradorId,
@@ -376,6 +382,23 @@ public sealed record OrganigramaNodoDto(
     int ColaboradoresActivos,
     string? Descripcion,
     bool IsActive);
+
+public sealed class CreateOrganigramaHijosBulkRequest
+{
+    public List<CreateOrganigramaHijoRequest> Hijos { get; set; } = new();
+}
+
+public sealed class CreateOrganigramaHijoRequest
+{
+    public string NombreNodo { get; set; } = string.Empty;
+    public string? Descripcion { get; set; }
+    public int? EmpresaId { get; set; }
+    public int? DepartamentoId { get; set; }
+    public int? CargoId { get; set; }
+    public int Orden { get; set; }
+    public bool EsRolOperativo { get; set; }
+    public bool IsActive { get; set; } = true;
+}
 
 public sealed record DepartamentoResponsableDto(
     int DepartamentoResponsableId,
@@ -682,7 +705,7 @@ public class CreateDepartamentoResponsableRequest
     public int? UsuarioResponsableId { get; set; }
     public string TipoResponsable { get; set; } = string.Empty;
     public bool EsPrincipal { get; set; }
-    public bool PuedeAprobarSolicitudes { get; set; } = true;
+    public bool PuedeAprobarSolicitudes { get; set; } = false;
     public DateTime FechaInicio { get; set; } = DateTime.Today;
     public DateTime? FechaFin { get; set; }
     public string? Observacion { get; set; }
@@ -692,6 +715,21 @@ public class CreateDepartamentoResponsableRequest
 public sealed class UpdateDepartamentoResponsableRequest : CreateDepartamentoResponsableRequest
 {
 }
+
+public sealed class CrearAccionPersonalDesdeAlertaRequest
+{
+    public string TipoAccion { get; set; } = string.Empty;
+    public DateTime? FechaEfectiva { get; set; }
+    public string Justificacion { get; set; } = string.Empty;
+    public int? DepartamentoResponsableId { get; set; }
+    public string? Observaciones { get; set; }
+}
+
+public sealed record AccionPersonalDesdeAlertaResultDto(
+    int SolicitudId,
+    string CodigoSolicitud,
+    int AccionPersonalId,
+    int AlertaOrigenId);
 
 public sealed record ColaboradorDetalleDto(
     int ColaboradorId,

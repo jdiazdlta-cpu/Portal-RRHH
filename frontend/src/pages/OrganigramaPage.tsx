@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
-import { Edit3, GitBranch, Network, Plus, Save, Search, ShieldCheck, Users, X } from 'lucide-react';
+import { Edit3, GitBranch, Network, Plus, Save, Search, ShieldCheck, Trash2, Users, X } from 'lucide-react';
 import { apiGet, apiPost, apiPut } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import type {
@@ -10,6 +10,8 @@ import type {
   DepartamentoResponsable,
   DepartamentoResponsableRequest,
   OrganigramaDetail,
+  OrganigramaHijosBulkRequest,
+  OrganigramaHijosBulkResult,
   OrganigramaList,
   OrganigramaNodo,
   OrganigramaNodoRequest,
@@ -43,6 +45,23 @@ type NodoForm = {
   orden: string;
   esRolOperativo: boolean;
   isActive: boolean;
+};
+
+type BulkChildRow = {
+  tempId: string;
+  nombreNodo: string;
+  empresaId: string;
+  departamentoId: string;
+  cargoId: string;
+  orden: string;
+  esRolOperativo: boolean;
+  descripcion: string;
+  isActive: boolean;
+};
+
+type BulkChildrenForm = {
+  parent: OrganigramaNodo;
+  rows: BulkChildRow[];
 };
 
 type ResponsableForm = {
@@ -85,9 +104,13 @@ export function OrganigramaPage() {
   const [colaboradores, setColaboradores] = useState<ColaboradorLookup[]>([]);
   const [filterEmpresaId, setFilterEmpresaId] = useState('');
   const [filterDepartamentoId, setFilterDepartamentoId] = useState('');
+  const [filterTipoResponsable, setFilterTipoResponsable] = useState('');
   const [colaboradorSearch, setColaboradorSearch] = useState('');
   const [organigramaForm, setOrganigramaForm] = useState<OrganigramaForm | null>(null);
   const [nodoForm, setNodoForm] = useState<NodoForm | null>(null);
+  const [bulkChildrenForm, setBulkChildrenForm] = useState<BulkChildrenForm | null>(null);
+  const [bulkDepartamentos, setBulkDepartamentos] = useState<Record<string, CatalogoItem[]>>({});
+  const [bulkCargos, setBulkCargos] = useState<Record<string, CatalogoItem[]>>({});
   const [responsableForm, setResponsableForm] = useState<ResponsableForm | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -134,10 +157,11 @@ export function OrganigramaPage() {
     const params = new URLSearchParams();
     if (filterEmpresaId) params.set('empresaId', filterEmpresaId);
     if (filterDepartamentoId) params.set('departamentoId', filterDepartamentoId);
+    if (filterTipoResponsable) params.set('tipoResponsable', filterTipoResponsable);
     apiGet<DepartamentoResponsable[]>(`/organigrama/responsables${params.toString() ? `?${params}` : ''}`)
       .then(setResponsables)
       .catch((err) => setError(err instanceof Error ? err.message : 'No se pudieron cargar responsables.'));
-  }, [filterDepartamentoId, filterEmpresaId]);
+  }, [filterDepartamentoId, filterEmpresaId, filterTipoResponsable]);
 
   const loadAprobadores = useCallback(() => {
     const params = new URLSearchParams();
@@ -235,6 +259,142 @@ export function OrganigramaPage() {
     loadCargos(item?.departamentoId ? String(item.departamentoId) : '');
   }
 
+  function openBulkChildrenForm(parent: OrganigramaNodo) {
+    if (!canAdmin) return;
+    setError('');
+    setNotice('');
+    const row = createBulkChildRow(parent, 1);
+    setBulkDepartamentos({});
+    setBulkCargos({});
+    setBulkChildrenForm({ parent, rows: [row] });
+    void loadBulkRowCatalogs(row);
+  }
+
+  async function loadBulkRowCatalogs(row: BulkChildRow) {
+    if (row.empresaId) {
+      await loadBulkDepartamentos(row.tempId, row.empresaId);
+    }
+
+    if (row.departamentoId) {
+      await loadBulkCargos(row.tempId, row.departamentoId);
+    }
+  }
+
+  async function loadBulkDepartamentos(rowId: string, empresaId: string) {
+    const params = new URLSearchParams();
+    if (empresaId) params.set('empresaId', empresaId);
+    try {
+      const data = await apiGet<CatalogoItem[]>(`/catalogos/departamentos${params.toString() ? `?${params}` : ''}`);
+      setBulkDepartamentos((current) => ({ ...current, [rowId]: data }));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudieron cargar departamentos para el nodo hijo.');
+    }
+  }
+
+  async function loadBulkCargos(rowId: string, departamentoId: string) {
+    const params = new URLSearchParams();
+    if (departamentoId) params.set('departamentoId', departamentoId);
+    try {
+      const data = await apiGet<CatalogoItem[]>(`/catalogos/cargos${params.toString() ? `?${params}` : ''}`);
+      setBulkCargos((current) => ({ ...current, [rowId]: data }));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudieron cargar cargos para el nodo hijo.');
+    }
+  }
+
+  function addBulkChildRow() {
+    if (!bulkChildrenForm) return;
+    const row = createBulkChildRow(bulkChildrenForm.parent, bulkChildrenForm.rows.length + 1);
+    setBulkChildrenForm({ ...bulkChildrenForm, rows: [...bulkChildrenForm.rows, row] });
+    void loadBulkRowCatalogs(row);
+  }
+
+  function removeBulkChildRow(rowId: string) {
+    setBulkChildrenForm((current) => current ? {
+      ...current,
+      rows: current.rows.length === 1 ? current.rows : current.rows.filter((row) => row.tempId !== rowId)
+    } : current);
+    setBulkDepartamentos((current) => {
+      const next = { ...current };
+      delete next[rowId];
+      return next;
+    });
+    setBulkCargos((current) => {
+      const next = { ...current };
+      delete next[rowId];
+      return next;
+    });
+  }
+
+  function changeBulkRow<K extends keyof BulkChildRow>(rowId: string, key: K, value: BulkChildRow[K]) {
+    setBulkChildrenForm((current) => current ? {
+      ...current,
+      rows: current.rows.map((row) => row.tempId === rowId ? { ...row, [key]: value } : row)
+    } : current);
+  }
+
+  function changeBulkEmpresa(rowId: string, value: string) {
+    setBulkChildrenForm((current) => current ? {
+      ...current,
+      rows: current.rows.map((row) => row.tempId === rowId ? { ...row, empresaId: value, departamentoId: '', cargoId: '' } : row)
+    } : current);
+    setBulkDepartamentos((current) => ({ ...current, [rowId]: [] }));
+    setBulkCargos((current) => ({ ...current, [rowId]: [] }));
+    if (value) {
+      void loadBulkDepartamentos(rowId, value);
+    }
+  }
+
+  function changeBulkDepartamento(rowId: string, value: string) {
+    setBulkChildrenForm((current) => current ? {
+      ...current,
+      rows: current.rows.map((row) => row.tempId === rowId ? { ...row, departamentoId: value, cargoId: '' } : row)
+    } : current);
+    setBulkCargos((current) => ({ ...current, [rowId]: [] }));
+    if (value) {
+      void loadBulkCargos(rowId, value);
+    }
+  }
+
+  async function saveBulkChildren(event: FormEvent) {
+    event.preventDefault();
+    if (!bulkChildrenForm) return;
+
+    const invalidRow = bulkChildrenForm.rows.find((row) => !row.nombreNodo.trim());
+    if (invalidRow) {
+      setError('Cada fila debe tener nombre de nodo.');
+      return;
+    }
+
+    setSaving(true);
+    setError('');
+    try {
+      const payload: OrganigramaHijosBulkRequest = {
+        hijos: bulkChildrenForm.rows.map((row) => ({
+          nombreNodo: row.nombreNodo.trim(),
+          descripcion: optionalText(row.descripcion),
+          empresaId: optionalNumber(row.empresaId),
+          departamentoId: optionalNumber(row.departamentoId),
+          cargoId: optionalNumber(row.cargoId),
+          orden: Number(row.orden || 0),
+          esRolOperativo: row.esRolOperativo,
+          isActive: row.isActive
+        }))
+      };
+
+      const result = await apiPost<OrganigramaHijosBulkResult>(`/organigrama/nodos/${bulkChildrenForm.parent.organigramaNodoId}/hijos-bulk`, payload);
+      setNotice(`${result.creados} nodos hijos creados.`);
+      const organigramaId = bulkChildrenForm.parent.organigramaId;
+      closeModals();
+      setOrgDetail(await apiGet<OrganigramaDetail>(`/organigrama/${organigramaId}`));
+      loadOrganigramas();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudieron crear los nodos hijos.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
   function openResponsableForm(item?: DepartamentoResponsable) {
     if (!canAdmin) return;
     setError('');
@@ -260,6 +420,9 @@ export function OrganigramaPage() {
   function closeModals() {
     setOrganigramaForm(null);
     setNodoForm(null);
+    setBulkChildrenForm(null);
+    setBulkDepartamentos({});
+    setBulkCargos({});
     setResponsableForm(null);
     setColaboradorSearch('');
   }
@@ -401,6 +564,9 @@ export function OrganigramaPage() {
       <form className="filter-row organigrama-filter-row" onSubmit={(event) => event.preventDefault()}>
         <Select label="Empresa" value={filterEmpresaId} onChange={changeEmpresaFilter} options={empresas} emptyText="Todas" />
         <Select label="Departamento" value={filterDepartamentoId} onChange={(value) => { setFilterDepartamentoId(value); loadCargos(value); }} options={departamentos} emptyText="Todos" />
+        {activeTab === 'responsables' && (
+          <TypeSelect label="Tipo" value={filterTipoResponsable} onChange={setFilterTipoResponsable} emptyText="Todos" />
+        )}
         <button className="secondary-button" type="button" onClick={() => { loadOrganigramas(); loadResponsables(); loadAprobadores(); }}>
           <Search size={17} />
           Filtrar
@@ -492,10 +658,16 @@ export function OrganigramaPage() {
                     <td><span className={`badge ${item.isActive ? 'success' : 'muted'}`}>{item.isActive ? 'Activo' : 'Inactivo'}</span></td>
                     <td>
                       {canAdmin && (
-                        <button className="icon-text-button" type="button" onClick={() => openNodoForm(item)}>
-                          <Edit3 size={16} />
-                          Editar
-                        </button>
+                        <div className="table-actions-stack">
+                          <button className="icon-text-button" type="button" onClick={() => openNodoForm(item)}>
+                            <Edit3 size={16} />
+                            Editar
+                          </button>
+                          <button className="icon-text-button" type="button" onClick={() => openBulkChildrenForm(item)}>
+                            <Plus size={16} />
+                            Agregar hijos
+                          </button>
+                        </div>
                       )}
                     </td>
                   </tr>
@@ -555,6 +727,54 @@ export function OrganigramaPage() {
         </div>
       )}
 
+      {bulkChildrenForm && (
+        <div className="modal-backdrop" role="presentation">
+          <section className="modal-panel solicitud-modal" role="dialog" aria-modal="true" aria-labelledby="bulk-children-title">
+            <ModalHeader title="Agregar nodos hijos" onClose={closeModals} />
+            <form className="edit-modal-form" onSubmit={saveBulkChildren}>
+              <div className="alert-context">
+                <span><strong>Nodo padre</strong>{bulkChildrenForm.parent.nombreNodo}</span>
+                <span><strong>Organigrama</strong>{orgDetail?.nombre ?? bulkChildrenForm.parent.organigramaId}</span>
+                <span><strong>Nivel hijo</strong>{bulkChildrenForm.parent.nivel + 1}</span>
+              </div>
+              <div className="bulk-children-list">
+                {bulkChildrenForm.rows.map((row, index) => (
+                  <div className="bulk-child-row" key={row.tempId}>
+                    <div className="bulk-row-heading">
+                      <strong>Hijo {index + 1}</strong>
+                      <button className="icon-button light" type="button" onClick={() => removeBulkChildRow(row.tempId)} disabled={bulkChildrenForm.rows.length === 1} title="Quitar fila" aria-label="Quitar fila">
+                        <Trash2 size={17} />
+                      </button>
+                    </div>
+                    <div className="edit-form-grid">
+                      <TextField label="Nombre nodo" value={row.nombreNodo} onChange={(value) => changeBulkRow(row.tempId, 'nombreNodo', value)} required />
+                      <Select label="Empresa" value={row.empresaId} onChange={(value) => changeBulkEmpresa(row.tempId, value)} options={empresas} emptyText="Todas" />
+                      <Select label="Departamento" value={row.departamentoId} onChange={(value) => changeBulkDepartamento(row.tempId, value)} options={bulkDepartamentos[row.tempId] ?? []} emptyText="Todos" />
+                      <SelectCargo label="Cargo" value={row.cargoId} onChange={(value) => changeBulkRow(row.tempId, 'cargoId', value)} options={bulkCargos[row.tempId] ?? []} emptyText="Todos" />
+                      <TextField label="Orden" type="number" value={row.orden} onChange={(value) => changeBulkRow(row.tempId, 'orden', value)} />
+                      <Check label="Rol operativo" checked={row.esRolOperativo} onChange={(value) => changeBulkRow(row.tempId, 'esRolOperativo', value)} />
+                      <Check label="Activo" checked={row.isActive} onChange={(value) => changeBulkRow(row.tempId, 'isActive', value)} />
+                      <Textarea label="Descripcion" value={row.descripcion} onChange={(value) => changeBulkRow(row.tempId, 'descripcion', value)} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="modal-actions">
+                <button className="secondary-button" type="button" onClick={addBulkChildRow}>
+                  <Plus size={18} />
+                  Agregar fila
+                </button>
+                <button className="secondary-button" type="button" onClick={closeModals}>Cancelar</button>
+                <button className="primary-button" disabled={saving} type="submit">
+                  <Save size={18} />
+                  {saving ? 'Guardando...' : 'Guardar hijos'}
+                </button>
+              </div>
+            </form>
+          </section>
+        </div>
+      )}
+
       {responsableForm && (
         <div className="modal-backdrop" role="presentation">
           <section className="modal-panel solicitud-modal" role="dialog" aria-modal="true" aria-labelledby="responsable-form-title">
@@ -563,7 +783,7 @@ export function OrganigramaPage() {
               <div className="edit-form-grid">
                 <Select label="Empresa" value={responsableForm.empresaId} onChange={(value) => { setResponsableForm((current) => current ? { ...current, empresaId: value, departamentoId: '', colaboradorResponsableId: '' } : current); loadDepartamentos(value); }} options={empresas} emptyText="Seleccione" required />
                 <Select label="Departamento" value={responsableForm.departamentoId} onChange={(value) => setResponsableForm((current) => current ? { ...current, departamentoId: value, colaboradorResponsableId: '' } : current)} options={departamentos} emptyText="Seleccione" required />
-                <TypeSelect value={responsableForm.tipoResponsable} onChange={(value) => setResponsableForm((current) => current ? { ...current, tipoResponsable: value } : current)} />
+                <TypeSelect label="Tipo responsable" value={responsableForm.tipoResponsable} onChange={(value) => setResponsableForm((current) => current ? { ...current, tipoResponsable: value } : current)} />
                 <label>
                   Buscar colaborador
                   <input value={colaboradorSearch} onChange={(event) => setColaboradorSearch(event.target.value)} placeholder="Nombre o no. empleado" />
@@ -632,7 +852,7 @@ function ResponsablesTable({
                 <td>{item.tipoResponsable}{item.esPrincipal ? ' / Principal' : ''}</td>
                 <td>{item.puedeAprobarSolicitudes ? 'Si' : 'No'}</td>
                 <td><span className={`badge ${item.isActive ? 'success' : 'muted'}`}>{item.isActive ? 'Activo' : 'Inactivo'}</span></td>
-                <td>{item.advertencias.length ? item.advertencias.join(' | ') : 'N/D'}</td>
+                <td><WarningList warnings={item.advertencias} /></td>
                 <td>
                   {canAdmin && (
                     <button className="icon-text-button" type="button" onClick={() => onEdit(item)}>
@@ -675,7 +895,7 @@ function AprobadoresTable({ aprobadores }: { aprobadores: AprobadorSolicitud[] }
               <td>{item.tipoResponsable}</td>
               <td>{item.usuarioResponsable ?? 'Sin usuario'}</td>
               <td>{item.esPrincipal ? 'Si' : 'No'}</td>
-              <td>{item.advertencias.length ? item.advertencias.join(' | ') : 'N/D'}</td>
+              <td><WarningList warnings={item.advertencias} /></td>
             </tr>
           ))}
         </tbody>
@@ -760,14 +980,39 @@ function SelectNode({ label, value, onChange, nodes }: { label: string; value: s
   );
 }
 
-function TypeSelect({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+function TypeSelect({
+  label,
+  value,
+  onChange,
+  emptyText
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  emptyText?: string;
+}) {
   return (
     <label>
-      Tipo responsable
+      {label}
       <select value={value} onChange={(event) => onChange(event.target.value)}>
+        {emptyText && <option value="">{emptyText}</option>}
         {responsibleTypes.map((item) => <option key={item} value={item}>{item}</option>)}
       </select>
     </label>
+  );
+}
+
+function WarningList({ warnings }: { warnings: string[] }) {
+  if (warnings.length === 0) {
+    return <span className="muted-text">N/D</span>;
+  }
+
+  return (
+    <div className="warning-stack">
+      {warnings.map((warning) => (
+        <span className="badge warning" key={warning}>{warning}</span>
+      ))}
+    </div>
   );
 }
 
@@ -853,6 +1098,20 @@ function emptyNodoForm(organigramaId: string, empresaId: string): NodoForm {
   };
 }
 
+function createBulkChildRow(parent: OrganigramaNodo, order: number): BulkChildRow {
+  return {
+    tempId: `${Date.now()}-${order}-${Math.random().toString(36).slice(2, 8)}`,
+    nombreNodo: '',
+    empresaId: parent.empresaId ? String(parent.empresaId) : '',
+    departamentoId: parent.departamentoId ? String(parent.departamentoId) : '',
+    cargoId: '',
+    orden: String(order),
+    esRolOperativo: parent.esRolOperativo,
+    descripcion: '',
+    isActive: true
+  };
+}
+
 function emptyResponsableForm(empresaId: string, departamentoId: string): ResponsableForm {
   return {
     empresaId,
@@ -861,7 +1120,7 @@ function emptyResponsableForm(empresaId: string, departamentoId: string): Respon
     usuarioResponsableId: '',
     tipoResponsable: 'LiderPrincipal',
     esPrincipal: true,
-    puedeAprobarSolicitudes: true,
+    puedeAprobarSolicitudes: false,
     fechaInicio: new Date().toISOString().slice(0, 10),
     fechaFin: '',
     observacion: '',

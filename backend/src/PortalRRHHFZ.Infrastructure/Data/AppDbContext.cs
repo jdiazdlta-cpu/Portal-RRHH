@@ -303,7 +303,9 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             entity.HasIndex(x => x.SolicitudId).IsUnique();
             entity.HasIndex(x => new { x.TipoAccion, x.Ejecutada });
             entity.HasIndex(x => x.ColaboradorId);
+            entity.HasIndex(x => x.AlertaOrigenId);
             entity.HasOne(x => x.Solicitud).WithOne(x => x.AccionPersonal).HasForeignKey<AccionPersonal>(x => x.SolicitudId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.AlertaOrigen).WithMany(x => x.AccionesPersonalOrigen).HasForeignKey(x => x.AlertaOrigenId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(x => x.Colaborador).WithMany().HasForeignKey(x => x.ColaboradorId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(x => x.EmpresaActual).WithMany().HasForeignKey(x => x.EmpresaActualId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(x => x.DepartamentoActual).WithMany().HasForeignKey(x => x.DepartamentoActualId).OnDelete(DeleteBehavior.Restrict);
